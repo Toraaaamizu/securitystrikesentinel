@@ -1,22 +1,7 @@
-# Eclipse
-.classpath
-.project
-.settings/
-
-# Build
-/target/
+/.classpath
+/.project
+/.settings/
 /bin/
-/build/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Reports
+/target/
 /reports/
-
-# Logs
 *.log
-
-# ZAP session files
-*.session
