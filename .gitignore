@@ -1,0 +1,22 @@
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Build
+/target/
+/bin/
+/build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Reports
+/reports/
+
+# Logs
+*.log
+
+# ZAP session files
+*.session
