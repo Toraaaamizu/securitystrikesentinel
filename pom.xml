@@ -166,6 +166,12 @@
         <excludeTags>slow</excludeTags>
       </properties>
     </profile>
+    <profile>
+    <id>failOnCVSS</id>
+    <properties>
+      <fail.cvss>true</fail.cvss>
+    </properties>
+  </profile>
   </profiles>
 
 </project>

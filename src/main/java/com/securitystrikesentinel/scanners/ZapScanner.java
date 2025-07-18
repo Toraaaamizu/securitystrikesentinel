@@ -63,23 +63,37 @@ public class ZapScanner {
 
         saveJsonReport(alerts);
 
-        try {
-            if (generateHtml) {
+        if (generateHtml) {
+            try {
                 HtmlReportGenerator reportGen = new HtmlReportGenerator();
                 reportGen.generateDetailedReportFromJson(targetUrl, JSON_REPORT_PATH);
                 System.out.println("[✓] HTML Report generated at: reports/detailed-report.html");
-            }
 
-            if (enableDelta) {
-                generateDeltaComparison();
-            }
+                if (enableDelta) {
+                    generateDeltaComparison();
+                }
 
-        } catch (Exception e) {
-            System.err.println("[!] Failed to generate post-scan reports: " + e.getMessage());
+            } catch (Exception e) {
+                System.err.println("[!] Failed to generate HTML report: " + e.getMessage());
+            }
+        }
+
+        int highSeverity = 0;
+        for (JsonNode alert : alerts.path("alerts")) {
+            String risk = alert.path("risk").asText("").toLowerCase();
+            if ("high".equals(risk)) {
+                highSeverity++;
+            }
+        }
+
+        if (failOnVuln && highSeverity > 0) {
+            System.err.printf("[!] CI Mode: %d high severity issues found. Failing the build.%n", highSeverity);
+            System.exit(1);
         }
 
         return alerts.path("alerts").size();
     }
+
 
     public void runZapScan(String targetUrl, boolean quickScan, int spiderTimeout, int ascanTimeout)
             throws IOException, InterruptedException {

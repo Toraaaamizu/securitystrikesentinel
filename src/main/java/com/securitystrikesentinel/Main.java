@@ -59,12 +59,14 @@ public class Main {
                     System.out.println("[i] Quick scan mode enabled (passive only)");
                 }
 
+                boolean failOnCvss = Boolean.parseBoolean(System.getProperty("fail.cvss", "false"));
+
                 ZapScanner scanner = new ZapScanner(
-                        options.contextName,
-                        options.policyName,
-                        true,                 // generateHtml
-                        options.ciMode,       // failOnVuln
-                        options.enableDelta   // enableDelta
+                    options.contextName,
+                    options.policyName,
+                    true,                // Generate HTML
+                    failOnCvss,          // Fail if high CVSS found
+                    options.enableDelta  // Delta reporting
                 );
 
                 int findings = scanner.scan(options.zapTarget, options.quickScan);
