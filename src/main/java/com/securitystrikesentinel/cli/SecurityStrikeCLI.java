@@ -3,7 +3,7 @@ package com.securitystrikesentinel.cli;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.securitystrikesentinel.reports.HtmlReportGenerator;
-import com.securitystrikesentinel.scanners.ZapScanner;
+import com.securitystrikesentinel.scanners.zap.ZapScanner;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,6 +34,26 @@ public class SecurityStrikeCLI {
 
     @Parameter(names = {"--help", "-h"}, help = true, description = "Display help message", order = 1)
     private boolean help;
+    @Parameter(names = "--auth-method", description = "ZAP authentication method (manual, form, http)")
+    private String authMethod;
+
+    @Parameter(names = "--auth-login-url", description = "Login URL (for form or manual auth)")
+    private String authLoginUrl;
+
+    @Parameter(names = "--auth-username", description = "Username for authentication")
+    private String authUsername;
+
+    @Parameter(names = "--auth-password", description = "Password for authentication")
+    private String authPassword;
+
+    @Parameter(names = "--auth-logged-in-indicator", description = "Regex/Indicator to confirm user is logged in")
+    private String loggedInIndicator;
+
+    @Parameter(names = "--auth-logout-indicator", description = "Regex/Indicator that shows the user is logged out")
+    private String logoutIndicator;
+
+    @Parameter(names = "--auth-exclude", description = "Regex pattern of URLs to exclude from authentication")
+    private String authExclude;
 
     public static void main(String... argv) {
         SecurityStrikeCLI cli = new SecurityStrikeCLI();
@@ -67,6 +87,12 @@ public class SecurityStrikeCLI {
                 if (cli.enableDelta) {
                     System.out.println("[i] Delta reporting enabled");
                 }
+                if (cli.authMethod != null) {
+                    System.out.printf("[i] Using authentication method: %s%n", cli.authMethod);
+                    System.out.printf("[i] Login URL: %s%n", cli.authLoginUrl);
+                    System.out.printf("[i] Username: %s%n", cli.authUsername);
+                }
+
 
                 ZapScanner scanner = new ZapScanner(
                         cli.context,

@@ -169,7 +169,7 @@ public class HtmlReportGenerator {
                 <h1>Security Scan Report</h1>
                 <div class="info">
                   <p><strong>Target:</strong> %s</p>
-                  <p><strong>Vulnerabilities Found:</strong> <span style="color:%s;">%s</span></p>
+                  <p><strong>Vulnerabilities Found:</strong> <span style="color:%s;">%d</span></p>
                   <p class="timestamp">Generated: %s</p>
                 </div>
                 <div class="summary">
@@ -209,10 +209,7 @@ public class HtmlReportGenerator {
                 window.onload = function () {
                   initTheme();
 
-                  const high = %s;
-                  const medium = %s;
-                  const low = %s;
-                  const info = %s;
+                  const high = %d, medium = %d, low = %d, info = %d;
                   const data = [high, medium, low, info];
                   const total = data.reduce((a, b) => a + b, 0);
 
@@ -222,11 +219,20 @@ public class HtmlReportGenerator {
                     return;
                   }
 
-                  if (!window.Pattern) {
-                    console.warn("⚠️ Pattern plugin not loaded. Falling back to solid colors.");
-                  }
-
                   const ctx = document.getElementById('vulnChart').getContext('2d');
+                  const plugin = window['chartjs-plugin-pattern'];
+                  const usePattern = plugin && plugin.Pattern && plugin.Pattern.draw;
+
+                  const backgroundColor = usePattern ? [
+                    plugin.Pattern.draw('diagonal', '#d62828'),
+                    plugin.Pattern.draw('zigzag', '#e67700'),
+                    plugin.Pattern.draw('dot', '#f4a261'),
+                    plugin.Pattern.draw('line', '#a1a1a1')
+                  ] : ['#d62828', '#e67700', '#f4a261', '#a1a1a1'];
+
+                  if (usePattern && Chart.registry && plugin.default) {
+                    Chart.register(plugin.default);
+                  }
 
                   new Chart(ctx, {
                     type: 'doughnut',
@@ -235,12 +241,7 @@ public class HtmlReportGenerator {
                       datasets: [{
                         label: 'Vulnerabilities',
                         data: data,
-                        backgroundColor: window.Pattern ? [
-                          window.Pattern.draw('diagonal', '#d62828'),
-                          window.Pattern.draw('zigzag', '#e67700'),
-                          window.Pattern.draw('dot', '#f4a261'),
-                          window.Pattern.draw('line', '#a1a1a1')
-                        ] : ['#d62828', '#e67700', '#f4a261', '#a1a1a1'],
+                        backgroundColor: backgroundColor,
                         borderColor: ['#600000', '#994d00', '#996633', '#666666'],
                         borderWidth: 2
                       }]
@@ -265,14 +266,11 @@ public class HtmlReportGenerator {
             </body>
             </html>
             """,
-            escapeHtml(target), color, Integer.toString(vulnCount),
+            escapeHtml(target), color, vulnCount,
             LocalDateTime.now().format(FORMATTER),
             statusMsg, vulnDetails,
-            Integer.toString(high), Integer.toString(medium), Integer.toString(low), Integer.toString(info)
+            high, medium, low, info
         );
     }
-
-
-
 
 }

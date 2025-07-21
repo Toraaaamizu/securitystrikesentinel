@@ -1,7 +1,7 @@
 package com.securitystrikesentinel.scanners;
 import org.junit.jupiter.api.Test;
 
-import com.securitystrikesentinel.scanners.ScanUtils;
+import com.securitystrikesentinel.scanners.zap.ScanUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 

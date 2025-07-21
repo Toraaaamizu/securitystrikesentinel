@@ -3,6 +3,8 @@ package com.securitystrikesentinel.scanners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.securitystrikesentinel.scanners.zap.ZapScanner;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;

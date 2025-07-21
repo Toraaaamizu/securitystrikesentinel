@@ -1,9 +1,9 @@
-package com.securitystrikesentinel;
+package com.securitystrikesentinel.launcher;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.securitystrikesentinel.reports.HtmlReportGenerator;
-import com.securitystrikesentinel.scanners.ZapScanner;
+import com.securitystrikesentinel.scanners.zap.ZapScanner;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
