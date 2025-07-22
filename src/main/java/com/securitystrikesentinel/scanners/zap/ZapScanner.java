@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.securitystrikesentinel.auth.ZapAuthManager;
 import com.securitystrikesentinel.reports.HtmlReportGenerator;
 
 import java.io.*;
@@ -32,13 +33,15 @@ public class ZapScanner {
     private boolean generateHtml;
     private boolean failOnVuln;
     private boolean enableDelta;
+    private ZapAuthManager authManager;
 
-    public ZapScanner(String contextName, String policyName, boolean generateHtml, boolean failOnVuln, boolean enableDelta) {
+    public ZapScanner(String contextName, String policyName, boolean generateHtml, boolean failOnVuln, boolean enableDelta, ZapAuthManager authManager) {
         this.contextName = contextName;
         this.scanPolicyName = policyName != null ? policyName : "Default Policy";
         this.generateHtml = generateHtml;
         this.failOnVuln = failOnVuln;
         this.enableDelta = enableDelta;
+        this.authManager = authManager;
     }
 
     public ZapScanner(String scanPolicyName) {
@@ -47,6 +50,11 @@ public class ZapScanner {
 
     public int scan(String targetUrl, boolean quickScan) throws IOException, InterruptedException {
         verifyZapApiAvailable();
+
+        if (authManager != null) {
+            System.out.println("[i] Applying authentication configuration...");
+            authManager.configureAuthentication(contextName, targetUrl);
+        }
 
         long siteRtt = measureSiteResponseTime(targetUrl);
         int spiderTimeout = calculateDynamicTimeout(siteRtt, 150);
@@ -93,7 +101,6 @@ public class ZapScanner {
 
         return alerts.path("alerts").size();
     }
-
 
     public void runZapScan(String targetUrl, boolean quickScan, int spiderTimeout, int ascanTimeout)
             throws IOException, InterruptedException {

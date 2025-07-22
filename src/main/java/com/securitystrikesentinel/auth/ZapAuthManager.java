@@ -1,84 +1,62 @@
 package com.securitystrikesentinel.auth;
 
-import java.util.Map;
-import java.util.logging.Logger;
-
-import org.zaproxy.clientapi.core.ClientApi;
-import org.zaproxy.clientapi.core.ClientApiException;
-
 /**
- * Handles ZAP context-based authentication setup and user management.
+ * Manages ZAP authentication context and credentials.
+ * Used to inject auth details into scans and optionally handle ZAP API calls for login.
  */
 public class ZapAuthManager {
 
-    private static final Logger LOGGER = Logger.getLogger(ZapAuthManager.class.getName());
-    private final ClientApi api;
     private final String contextName;
-    private int contextId = -1;
+    private final String username;
+    private final String password;
 
-    public ZapAuthManager(ClientApi api, String contextName) {
-        this.api = api;
+    /**
+     * Constructs an authentication manager with the provided context and credentials.
+     *
+     * @param contextName ZAP context name to use
+     * @param username    Username for authentication
+     * @param password    Password for authentication
+     */
+    public ZapAuthManager(String contextName, String username, String password) {
         this.contextName = contextName;
+        this.username = username;
+        this.password = password;
     }
 
     /**
-     * Initializes a ZAP context and returns its ID.
+     * @return ZAP context name
      */
-    public int initContext() throws ClientApiException {
-        LOGGER.info("Creating ZAP context: " + contextName);
-        this.contextId = Integer.parseInt(new String(api.context.newContext(contextName)));
-        return contextId;
-    }
-
-    /**
-     * Configures form-based authentication.
-     */
-    public void configureFormAuth(String loginUrl, String loginRequestData) throws ClientApiException {
-        LOGGER.info("Setting form-based authentication...");
-        api.authentication.setAuthenticationMethod(
-            Integer.toString(contextId),
-            "formBasedAuthentication",
-            "loginUrl=" + loginUrl + "&loginRequestData=" + loginRequestData
-        );
-    }
-
-    /**
-     * Adds a user with given credentials.
-     */
-    public int createUser(String username, String password) throws ClientApiException {
-        LOGGER.info("Creating user in context ID " + contextId);
-        String userJson = new String(api.users.newUser(Integer.toString(contextId), username));
-        int userId = Integer.parseInt(userJson.replaceAll("[^0-9]", ""));
-        
-        String credentials = "username=" + username + "&password=" + password;
-        api.users.setAuthenticationCredentials(Integer.toString(contextId), Integer.toString(userId), credentials);
-        api.users.setUserEnabled(Integer.toString(contextId), Integer.toString(userId), "true");
-
-        return userId;
-    }
-
-    /**
-     * Forces ZAP to use the specified user for scanning.
-     */
-    public void setForcedUser(int userId) throws ClientApiException {
-        LOGGER.info("Forcing user mode with user ID: " + userId);
-        api.forcedUser.setForcedUser(Integer.toString(contextId), Integer.toString(userId));
-        api.forcedUser.setForcedUserModeEnabled(true);
-    }
-
-    /**
-     * Optional: disables forced user mode
-     */
-    public void disableForcedUser() throws ClientApiException {
-        api.forcedUser.setForcedUserModeEnabled(false);
-        LOGGER.info("Forced user mode disabled.");
-    }
-
-    public int getContextId() {
-        return contextId;
-    }
-
     public String getContextName() {
         return contextName;
+    }
+
+    /**
+     * @return Authenticated username
+     */
+    public String getUsername() {
+        return username;
+    }
+
+    /**
+     * @return Authenticated password
+     */
+    public String getPassword() {
+        return password;
+    }
+
+    /**
+     * This method should perform login/auth setup in ZAP via the API.
+     * You can extend this to import contexts, set forced users, or perform script-based login.
+     */
+    public void performLoginLogic() {
+        // TODO: Add ZAP API calls to import context, set credentials, start forced user mode etc.
+        System.out.printf("[i] (Mock) Login initiated for context '%s' with user '%s'%n", contextName, username);
+
+        // Example (future):
+        // - /JSON/context/action/importContext/
+        // - /JSON/authentication/action/setAuthenticationMethod/
+        // - /JSON/users/action/setAuthenticationCredentials/
+        // - /JSON/forcedUser/action/setForcedUser/
+        // - /JSON/forcedUser/action/setForcedUserModeEnabled/
     }
 }

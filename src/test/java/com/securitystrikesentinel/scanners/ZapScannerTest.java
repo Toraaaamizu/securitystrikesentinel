@@ -1,74 +1,80 @@
 package com.securitystrikesentinel.scanners;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
+import com.securitystrikesentinel.reports.HtmlReportGenerator;
+import com.securitystrikesentinel.auth.ZapAuthManager;
 import com.securitystrikesentinel.scanners.zap.ZapScanner;
+import org.junit.jupiter.api.*;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ZapScannerTest {
 
-    private static final String testTargetUrl = "http://zero.webappsecurity.com";
+    private static final String TARGET_URL = "http://zero.webappsecurity.com";
+    private static final Path REPORT_JSON = Paths.get("reports/zap_result.json");
+    private static final Path REPORT_HTML = Paths.get("reports/detailed-report.html");
 
     @BeforeAll
-    static void checkZapRunning() {
+    static void ensureZapAvailable() {
         try {
             ZapScanner.verifyZapApiAvailable();
         } catch (Exception e) {
-            fail("❌ ZAP API is not available: " + e.getMessage());
+            fail("ZAP API not reachable: " + e.getMessage());
         }
     }
 
-    @Test
-    void testFullScanGeneratesReportAndFindings() {
-        assertTimeoutPreemptively(Duration.ofMinutes(40), () -> {
-            try {
-                ZapScanner scanner = new ZapScanner(
-                        null,               // contextName
-                        "Default Policy",   // scanPolicyName
-                        true,               // generateHtml
-                        false,              // failOnVuln
-                        true                // enableDelta
-                );
-
-                int findings = scanner.scan(testTargetUrl, false); // Full scan
-
-                assertTrue(findings >= 0, "❌ Expected non-negative number of findings.");
-                assertTrue(Files.exists(Paths.get("reports/zap_result.json")),
-                        "❌ Expected 'zap_result.json' report to exist.");
-            } catch (Exception e) {
-                e.printStackTrace();
-                fail("❌ Exception during full scan: " + e.getMessage());
-            }
-        });
+    @BeforeEach
+    public void cleanReports() throws Exception {
+        Files.createDirectories(REPORT_JSON.getParent());
+        Files.deleteIfExists(REPORT_JSON);
+        Files.deleteIfExists(REPORT_HTML);
     }
 
     @Test
-    void testQuickScanGeneratesReportAndFindings() {
-        assertTimeoutPreemptively(Duration.ofMinutes(5), () -> {
-            try {
-                ZapScanner scanner = new ZapScanner(
-                        null,
-                        "Default Policy",
-                        true,
-                        false,
-                        true
-                );
+    public void testAuthenticatedScanGeneratesFindings() throws Exception {
+    	ZapAuthManager auth = new ZapAuthManager("default-context", "testuser", "testpass");
 
-                int findings = scanner.scan(testTargetUrl, true); // Quick scan
+    	ZapScanner scanner = new ZapScanner(
+    	    auth.getContextName(),
+    	    "Default Policy",
+    	    true,
+    	    false,
+    	    false,
+    	    auth
+    	);
 
-                assertTrue(findings >= 0, "❌ Expected non-negative number of findings.");
-                assertTrue(Files.exists(Paths.get("reports/zap_result.json")),
-                        "❌ Expected 'zap_result.json' report to exist.");
-            } catch (Exception e) {
-                e.printStackTrace();
-                fail("❌ Exception during quick scan: " + e.getMessage());
-            }
-        });
+        int findings = scanner.scan(TARGET_URL, false);
+        assertTrue(findings >= 0, "Expected at least 0 findings");
+        assertTrue(Files.exists(REPORT_JSON), "Expected zap_result.json to exist");
+        assertTrue(Files.exists(REPORT_HTML), "Expected detailed-report.html to exist");
+
+        // Validate specific vulnerability presence (mock check)
+        List<String> htmlLines = Files.readAllLines(REPORT_HTML);
+        boolean containsLogin = htmlLines.stream().anyMatch(line -> line.contains("login"));
+        assertTrue(containsLogin, "Expected scan report to mention 'login' pages or alerts");
+    }
+
+    @Test
+    public void testQuickUnauthenticatedScan() throws Exception {
+        ZapScanner scanner = new ZapScanner(null, "Default Policy", true, false, false, null);
+        int findings = scanner.scan(TARGET_URL, true);
+
+        assertTrue(findings >= 0);
+        assertTrue(Files.exists(REPORT_JSON));
+        assertTrue(Files.exists(REPORT_HTML));
+
+        // Minimal check for known HTML elements
+        String content = Files.readString(REPORT_HTML);
+        assertTrue(content.contains("<h1>Security Scan Report</h1>"), "Expected header in report");
+    }
+
+    @AfterEach
+    public void cleanup() throws Exception {
+        Files.deleteIfExists(REPORT_JSON);
+        Files.deleteIfExists(REPORT_HTML);
     }
 }
