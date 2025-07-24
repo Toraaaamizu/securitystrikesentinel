@@ -2,6 +2,7 @@ package com.securitystrikesentinel.launcher;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.securitystrikesentinel.auth.ZapAuthManager;
 import com.securitystrikesentinel.reports.HtmlReportGenerator;
 import com.securitystrikesentinel.scanners.zap.ZapScanner;
 
@@ -34,6 +35,27 @@ public class Main {
         @Parameter(names = {"--delta"}, description = "Enable delta reporting (compare with previous snapshot)")
         private boolean enableDelta = false;
 
+        @Parameter(names = {"--auth-username"}, description = "Username for authentication")
+        private String authUsername;
+
+        @Parameter(names = {"--auth-password"}, description = "Password for authentication")
+        private String authPassword;
+
+        @Parameter(names = {"--auth-method"}, description = "Auth method (form/manual/http)")
+        private String authMethod;
+
+        @Parameter(names = {"--auth-login-url"}, description = "Login URL")
+        private String authLoginUrl;
+
+        @Parameter(names = {"--auth-logged-in-indicator"}, description = "Regex/Indicator that shows login success")
+        private String loggedInIndicator;
+
+        @Parameter(names = {"--auth-logout-indicator"}, description = "Regex/Indicator for logout")
+        private String logoutIndicator;
+
+        @Parameter(names = {"--auth-exclude"}, description = "Regex pattern to exclude from auth")
+        private String authExclude;
+
         @Parameter(names = {"--help", "-h"}, help = true, description = "Show usage")
         private boolean help = false;
     }
@@ -55,25 +77,47 @@ public class Main {
 
             if (options.zapTarget != null) {
                 System.out.println("[+] Running ZAP scan on: " + options.zapTarget);
-                if (options.quickScan) {
-                    System.out.println("[i] Quick scan mode enabled (passive only)");
+                if (options.quickScan) System.out.println("[i] Quick scan mode enabled");
+                if (options.contextName != null) System.out.println("[i] Using context: " + options.contextName);
+                if (options.policyName != null) System.out.println("[i] Scan policy: " + options.policyName);
+                if (options.ciMode) System.out.println("[i] CI mode active");
+                if (options.enableDelta) System.out.println("[i] Delta reporting enabled");
+
+                // Optional: Enable failOnVuln via system property or cli-mode
+                boolean failOnVuln = options.ciMode || Boolean.parseBoolean(System.getProperty("fail.cvss", "false"));
+
+                // Build auth manager if credentials are supplied
+                ZapAuthManager authManager = null;
+                if (options.authUsername != null && options.authPassword != null && options.contextName != null) {
+                    authManager = new ZapAuthManager(
+                            options.contextName,
+                            options.authUsername,
+                            options.authPassword,
+                            options.authMethod,
+                            options.authLoginUrl,
+                            options.loggedInIndicator,
+                            options.logoutIndicator,
+                            options.authExclude
+                    );
+                    System.out.printf("[i] Auth configured for user '%s' via '%s'%n",
+                            options.authUsername, options.authMethod != null ? options.authMethod : "form");
                 }
 
-                boolean failOnCvss = Boolean.parseBoolean(System.getProperty("fail.cvss", "false"));
-
+                // Initialize and run scanner
                 ZapScanner scanner = new ZapScanner(
-                    options.contextName,
-                    options.policyName,
-                    true,                // Generate HTML
-                    failOnCvss,          // Fail if high CVSS found
-                    options.enableDelta  // Delta reporting
+                        options.contextName,
+                        options.policyName,
+                        true,               // Generate HTML always (CLI launcher default)
+                        failOnVuln,
+                        options.enableDelta,
+                        authManager
                 );
 
                 int findings = scanner.scan(options.zapTarget, options.quickScan);
                 System.out.printf("[✓] ZAP scan completed. Findings: %d%n", findings);
 
                 if (options.ciMode && findings > 0) {
-                    System.err.println("[!] CI mode enabled: vulnerabilities found. Exiting with non-zero status.");
+                    System.err.println("[!] CI mode: vulnerabilities found. Exiting with non-zero status.");
                     System.exit(1);
                 }
             }
@@ -83,8 +127,8 @@ public class Main {
                 Path jsonPath = Paths.get("reports/zap_result.json");
 
                 if (Files.exists(jsonPath)) {
-                    HtmlReportGenerator reportGen = new HtmlReportGenerator();
-                    reportGen.generateDetailedReportFromJson(
+                    HtmlReportGenerator generator = new HtmlReportGenerator();
+                    generator.generateDetailedReportFromJson(
                             options.zapTarget != null ? options.zapTarget : "Unknown Target",
                             jsonPath.toString()
                     );
@@ -96,8 +140,8 @@ public class Main {
 
         } catch (Exception e) {
             System.err.println("[!] Error: " + e.getMessage());
-            commander.usage();
             e.printStackTrace();
+            commander.usage();
         }
     }
 }

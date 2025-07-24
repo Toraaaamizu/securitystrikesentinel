@@ -16,6 +16,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * ZapScanner handles integration with the OWASP ZAP API, including scanning, authentication, and report generation.
+ */
 public class ZapScanner {
 
     private static final String ZAP_HOST = "localhost";
@@ -35,6 +38,9 @@ public class ZapScanner {
     private boolean enableDelta;
     private ZapAuthManager authManager;
 
+    /**
+     * Constructor with full configuration.
+     */
     public ZapScanner(String contextName, String policyName, boolean generateHtml, boolean failOnVuln, boolean enableDelta, ZapAuthManager authManager) {
         this.contextName = contextName;
         this.scanPolicyName = policyName != null ? policyName : "Default Policy";
@@ -44,10 +50,16 @@ public class ZapScanner {
         this.authManager = authManager;
     }
 
+    /**
+     * Basic constructor using only policy.
+     */
     public ZapScanner(String scanPolicyName) {
         this.scanPolicyName = scanPolicyName;
     }
 
+    /**
+     * Executes a full or quick ZAP scan and returns the number of alerts.
+     */
     public int scan(String targetUrl, boolean quickScan) throws IOException, InterruptedException {
         verifyZapApiAvailable();
 
@@ -102,6 +114,9 @@ public class ZapScanner {
         return alerts.path("alerts").size();
     }
 
+    /**
+     * Executes spider and active scan phases.
+     */
     public void runZapScan(String targetUrl, boolean quickScan, int spiderTimeout, int ascanTimeout)
             throws IOException, InterruptedException {
 
@@ -240,6 +255,9 @@ public class ZapScanner {
         }
     }
 
+    /**
+     * Verifies the ZAP API is accessible.
+     */
     public static void verifyZapApiAvailable() throws IOException {
         URL url = new URL(BASE_URL);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -256,6 +274,9 @@ public class ZapScanner {
         System.out.println("[✓] ZAP API is up " + (USE_API_KEY ? "(API key enabled)" : "(no API key)"));
     }
 
+    /**
+     * Sends a simple GET request to the specified URL.
+     */
     public static String sendSimpleGetRequest(String urlStr) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
         conn.setRequestMethod("GET");
