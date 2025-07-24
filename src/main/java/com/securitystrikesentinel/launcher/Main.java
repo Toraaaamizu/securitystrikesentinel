@@ -10,6 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Main entry point for running Security Strike Sentinel from CLI.
+ */
 public class Main {
 
     public static class CLIOptions {
@@ -23,7 +26,7 @@ public class Main {
         @Parameter(names = {"--html-report", "-r"}, description = "Generate HTML report from last scan")
         private boolean generateReport = false;
 
-        @Parameter(names = {"--context"}, description = "ZAP Context name to use (optional)")
+        @Parameter(names = {"--context"}, description = "ZAP Context name to use (required for auth)")
         private String contextName;
 
         @Parameter(names = {"--policy"}, description = "ZAP Scan Policy name to use (optional)")
@@ -83,31 +86,32 @@ public class Main {
                 if (options.ciMode) System.out.println("[i] CI mode active");
                 if (options.enableDelta) System.out.println("[i] Delta reporting enabled");
 
-                // Optional: Enable failOnVuln via system property or cli-mode
                 boolean failOnVuln = options.ciMode || Boolean.parseBoolean(System.getProperty("fail.cvss", "false"));
 
-                // Build auth manager if credentials are supplied
+                // Auth manager setup
                 ZapAuthManager authManager = null;
                 if (options.authUsername != null && options.authPassword != null && options.contextName != null) {
                     authManager = new ZapAuthManager(
                             options.contextName,
                             options.authUsername,
                             options.authPassword,
-                            options.authMethod,
+                            options.authMethod != null ? options.authMethod : "form",
                             options.authLoginUrl,
-                            options.loggedInIndicator,
+                            "username", // Default form field
+                            "password", // Default form field
                             options.logoutIndicator,
+                            options.loggedInIndicator,
                             options.authExclude
                     );
-                    System.out.printf("[i] Auth configured for user '%s' via '%s'%n",
+                    System.out.printf("[i] Authentication configured for user '%s' via method '%s'%n",
                             options.authUsername, options.authMethod != null ? options.authMethod : "form");
                 }
 
-                // Initialize and run scanner
+                // Run scan
                 ZapScanner scanner = new ZapScanner(
                         options.contextName,
                         options.policyName,
-                        true,               // Generate HTML always (CLI launcher default)
+                        true,               // Always generate HTML
                         failOnVuln,
                         options.enableDelta,
                         authManager

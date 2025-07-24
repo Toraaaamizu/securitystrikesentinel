@@ -54,6 +54,12 @@ public class SecurityStrikeCLI {
     @Parameter(names = {"--auth-exclude"}, description = "Regex pattern to exclude from authentication")
     private String authExclude;
 
+    @Parameter(names = {"--username-field"}, description = "Field name for username (default: 'username')")
+    private String usernameField = "username";
+
+    @Parameter(names = {"--password-field"}, description = "Field name for password (default: 'password')")
+    private String passwordField = "password";
+
     @Parameter(names = {"--help", "-h"}, help = true, description = "Show this help message")
     private boolean help;
 
@@ -78,25 +84,27 @@ public class SecurityStrikeCLI {
                 if (cli.ciMode) System.out.println("[i] CI/CD mode: will fail on high severity issues");
                 if (cli.enableDelta) System.out.println("[i] Delta comparison enabled");
 
-                // Suggest default context if not set but auth is provided
                 if (cli.context == null && cli.authMethod != null) {
-                    System.out.println("[?] Context not provided. Suggest using '--context default-context'");
+                    System.out.println("[?] Context not provided. Suggesting '--context default-context'");
                     cli.context = "default-context";
                 }
 
                 ZapAuthManager authManager = null;
-                if (cli.authMethod != null) {
+                if (cli.authUsername != null && cli.authPassword != null && cli.authMethod != null) {
                     authManager = new ZapAuthManager(
                             cli.context != null ? cli.context : "default-context",
-                            cli.authMethod,
-                            cli.authLoginUrl,
                             cli.authUsername,
                             cli.authPassword,
-                            cli.loggedInIndicator,
+                            cli.authMethod,
+                            cli.authLoginUrl,
+                            cli.usernameField,
+                            cli.passwordField,
                             cli.logoutIndicator,
+                            cli.loggedInIndicator,
                             cli.authExclude
                     );
-                    System.out.printf("[✓] Auth configured for user: %s%n", cli.authUsername);
+                    System.out.printf("[✓] Auth configured for user: %s (method: %s)%n",
+                            cli.authUsername, cli.authMethod);
                 }
 
                 ZapScanner scanner = new ZapScanner(
