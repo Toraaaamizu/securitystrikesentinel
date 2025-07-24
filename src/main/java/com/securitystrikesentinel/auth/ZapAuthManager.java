@@ -21,62 +21,46 @@ public class ZapAuthManager {
     private final String password;
     private final String authMethod;
     private final String loginUrl;
-    private final String loggedInIndicator;
+    private final String usernameField;
+    private final String passwordField;
     private final String logoutIndicator;
-    private final String authExclude;
+    private final String loggedInIndicator;
+    private final String authExcludePattern;
 
 
-    public ZapAuthManager(
-            String contextName,
+    public ZapAuthManager(String contextName,
             String username,
             String password,
             String authMethod,
             String loginUrl,
-            String loggedInIndicator,
+            String usernameField,
+            String passwordField,
             String logoutIndicator,
-            String authExclude
-    ) {
-        this.contextName = contextName;
-        this.username = username;
-        this.password = password;
-        this.authMethod = authMethod;
-        this.loginUrl = loginUrl;
-        this.loggedInIndicator = loggedInIndicator;
-        this.logoutIndicator = logoutIndicator;
-        this.authExclude = authExclude;
-    }
+            String loggedInIndicator,
+            String authExcludePattern) {
+this.contextName = contextName;
+this.username = username;
+this.password = password;
+this.authMethod = authMethod;
+this.loginUrl = loginUrl;
+this.usernameField = usernameField;
+this.passwordField = passwordField;
+this.logoutIndicator = logoutIndicator;
+this.loggedInIndicator = loggedInIndicator;
+this.authExcludePattern = authExcludePattern;
+}
 
-    public String getContextName() {
-        return contextName;
-    }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public String getAuthMethod() {
-        return authMethod;
-    }
-
-    public String getLoginUrl() {
-        return loginUrl;
-    }
-
-    public String getLoggedInIndicator() {
-        return loggedInIndicator;
-    }
-
-    public String getLogoutIndicator() {
-        return logoutIndicator;
-    }
-
-    public String getAuthExclude() {
-        return authExclude;
-    }
+    public String getContextName() { return contextName; }
+    public String getUsername() { return username; }
+    public String getPassword() { return password; }
+    public String getAuthMethod() { return authMethod; }
+    public String getLoginUrl() { return loginUrl; }
+    public String getUsernameField() { return usernameField; }
+    public String getPasswordField() { return passwordField; }
+    public String getLogoutIndicator() { return logoutIndicator; }
+    public String getLoggedInIndicator() { return loggedInIndicator; }
+    public String getAuthExcludePattern() { return authExcludePattern; }
 
     /**
      * Configures authentication in ZAP, including dynamic context creation if needed.

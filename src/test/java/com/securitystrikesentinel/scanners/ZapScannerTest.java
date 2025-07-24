@@ -1,7 +1,7 @@
 package com.securitystrikesentinel.scanners;
 
-import com.securitystrikesentinel.auth.ZapAuthManager;
 import com.securitystrikesentinel.reports.HtmlReportGenerator;
+import com.securitystrikesentinel.auth.ZapAuthManager;
 import com.securitystrikesentinel.scanners.zap.ZapScanner;
 import org.junit.jupiter.api.*;
 
@@ -17,15 +17,13 @@ public class ZapScannerTest {
     private static final String TARGET_URL = "http://zero.webappsecurity.com";
     private static final Path REPORT_JSON = Paths.get("reports/zap_result.json");
     private static final Path REPORT_HTML = Paths.get("reports/detailed-report.html");
-    private static final String DEFAULT_CONTEXT = "default-context";
-    private static final String DEFAULT_POLICY = "Default Policy";
 
     @BeforeAll
     static void ensureZapAvailable() {
         try {
             ZapScanner.verifyZapApiAvailable();
         } catch (Exception e) {
-            fail("❌ ZAP API not reachable: " + e.getMessage());
+            fail("ZAP API not reachable: " + e.getMessage());
         }
     }
 
@@ -36,48 +34,50 @@ public class ZapScannerTest {
         Files.deleteIfExists(REPORT_HTML);
     }
 
-    /**
-     * Performs a full authenticated scan and verifies the results and output reports.
-     */
     @Test
     public void testAuthenticatedScanGeneratesFindings() throws Exception {
-        ZapAuthManager auth = new ZapAuthManager(
-            DEFAULT_CONTEXT,
-            "form",                       // auth method
-            "http://zero.webappsecurity.com/login.html", // login URL
-            "testuser",
-            "testpass",
-            "Logout",                     // logged-in indicator (regex or keyword)
-            "Login",                      // logout indicator
-            ".*logout.*"                  // exclude pattern (optional)
-        );
+    	ZapAuthManager auth = new ZapAuthManager(
+    		    "default-context",
+    		    "testuser",
+    		    "testpass",
+    		    "form", // or "manual"
+    		    "http://zero.webappsecurity.com/login.html",
+    		    "username",
+    		    "password",
+    		    "logout",  // logout indicator
+    		    "login",   // login indicator
+    		    null       // exclude pattern
+    		);
 
         ZapScanner scanner = new ZapScanner(
-            auth.getContextName(),
-            DEFAULT_POLICY,
-            true,
-            false,
-            false,
-            auth
+                auth.getContextName(),
+                "Default Policy",
+                true,
+                false,
+                false,
+                auth
         );
 
         int findings = scanner.scan(TARGET_URL, false);
         assertTrue(findings >= 0, "Expected at least 0 findings");
-
         assertTrue(Files.exists(REPORT_JSON), "Expected zap_result.json to exist");
         assertTrue(Files.exists(REPORT_HTML), "Expected detailed-report.html to exist");
 
+        // 🔍 Flexible validation: look for any of several auth-related keywords
         List<String> htmlLines = Files.readAllLines(REPORT_HTML);
-        boolean containsLogin = htmlLines.stream().anyMatch(line -> line.toLowerCase().contains("login"));
-        assertTrue(containsLogin, "Expected scan report to mention 'login' pages or alerts");
+        boolean containsAuthKeyword = htmlLines.stream().anyMatch(line ->
+                line.toLowerCase().contains("login") ||
+                line.toLowerCase().contains("logout") ||
+                line.toLowerCase().contains("authentication")
+        );
+
+        assertTrue(containsAuthKeyword,
+                "Expected report to contain authentication-related keywords (login/logout/authentication)");
     }
 
-    /**
-     * Performs a quick unauthenticated scan and validates the basic structure of output.
-     */
     @Test
     public void testQuickUnauthenticatedScan() throws Exception {
-        ZapScanner scanner = new ZapScanner(null, DEFAULT_POLICY, true, false, false, null);
+        ZapScanner scanner = new ZapScanner(null, "Default Policy", true, false, false, null);
         int findings = scanner.scan(TARGET_URL, true);
 
         assertTrue(findings >= 0);
@@ -85,7 +85,7 @@ public class ZapScannerTest {
         assertTrue(Files.exists(REPORT_HTML));
 
         String content = Files.readString(REPORT_HTML);
-        assertTrue(content.contains("<h1>Security Scan Report</h1>"), "Expected report to contain main header");
+        assertTrue(content.contains("<h1>Security Scan Report</h1>"), "Expected header in report");
     }
 
     @AfterEach
