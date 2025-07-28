@@ -1,14 +1,14 @@
 package com.securitystrikesentinel.cli;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.securitystrikesentinel.auth.ZapAuthManager;
 import com.securitystrikesentinel.reports.HtmlReportGenerator;
 import com.securitystrikesentinel.scanners.zap.ZapScanner;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public class SecurityStrikeCLI {
 

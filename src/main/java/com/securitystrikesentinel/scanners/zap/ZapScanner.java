@@ -1,13 +1,11 @@
 package com.securitystrikesentinel.scanners.zap;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.securitystrikesentinel.auth.ZapAuthManager;
-import com.securitystrikesentinel.reports.HtmlReportGenerator;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -15,6 +13,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.securitystrikesentinel.auth.ZapAuthManager;
+import com.securitystrikesentinel.reports.HtmlReportGenerator;
 
 /**
  * ZapScanner handles integration with the OWASP ZAP API, including scanning, authentication, and report generation.
