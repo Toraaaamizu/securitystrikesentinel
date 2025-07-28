@@ -33,6 +33,12 @@
       <groupId>org.zaproxy</groupId>
       <artifactId>zap-clientapi</artifactId>
       <version>1.12.0</version>
+      <exclusions>
+    <exclusion>
+      <groupId>org.jdom</groupId>
+      <artifactId>jdom</artifactId>
+    </exclusion>
+  </exclusions>
     </dependency>
 
     <!-- JSON Handling -->
