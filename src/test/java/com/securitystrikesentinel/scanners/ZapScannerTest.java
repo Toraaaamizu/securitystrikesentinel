@@ -16,7 +16,11 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ZapScannerTest {
 
-    private static final String TARGET_URL = "http://zero.webappsecurity.com";
+	private static final String TARGET_URL = "http://testphp.vulnweb.com/login.php";
+	private static final String LOGIN_URL = "http://testphp.vulnweb.com/login.php";
+	private static final String USERNAME = "test";
+	private static final String PASSWORD = "test";
+
     private static final Path REPORT_JSON = Paths.get("reports/zap_result.json");
     private static final Path REPORT_HTML = Paths.get("reports/detailed-report.html");
     private static boolean zapAvailable;
@@ -47,9 +51,9 @@ public class ZapScannerTest {
         ZapAuthManager auth = new ZapAuthManager(
         	    "default-context",
         	    "form",
-        	    "http://zero.webappsecurity.com/login.html",
-        	    "testuser",
-        	    "testpass",
+        	    LOGIN_URL,
+        	    USERNAME,
+        	    PASSWORD,
         	    "username",               // username field in form
         	    "password",               // password field in form
         	    "Accounts Overview",      // loggedInIndicator (adjust to actual success indicator)
