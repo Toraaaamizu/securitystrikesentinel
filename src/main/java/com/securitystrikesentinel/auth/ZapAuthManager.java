@@ -1,186 +1,159 @@
 package com.securitystrikesentinel.auth;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.URLEncoder;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 
 public class ZapAuthManager {
 
-    private static final String ZAP_BASE = "http://localhost:8080";
-    private static final String API_KEY = "1utjr8dcvt4521ujk7d62md5l9";
-
     private final String contextName;
-    private final String username;
-    private final String password;
     private final String authMethod;
     private final String loginUrl;
+    private final String username;
+    private final String password;
     private final String usernameField;
     private final String passwordField;
-    private final String logoutIndicator;
     private final String loggedInIndicator;
-    private final String authExcludePattern;
+    private final String logoutIndicator;
+    private final String authExclude;
 
+    private static final String ZAP_API_BASE = "http://localhost:8080/JSON";
 
-    public ZapAuthManager(String contextName,
-            String username,
-            String password,
+    public ZapAuthManager(
+            String contextName,
             String authMethod,
             String loginUrl,
+            String username,
+            String password,
             String usernameField,
             String passwordField,
-            String logoutIndicator,
             String loggedInIndicator,
-            String authExcludePattern) {
-this.contextName = contextName;
-this.username = username;
-this.password = password;
-this.authMethod = authMethod;
-this.loginUrl = loginUrl;
-this.usernameField = usernameField;
-this.passwordField = passwordField;
-this.logoutIndicator = logoutIndicator;
-this.loggedInIndicator = loggedInIndicator;
-this.authExcludePattern = authExcludePattern;
-}
-
-
-    public String getContextName() { return contextName; }
-    public String getUsername() { return username; }
-    public String getPassword() { return password; }
-    public String getAuthMethod() { return authMethod; }
-    public String getLoginUrl() { return loginUrl; }
-    public String getUsernameField() { return usernameField; }
-    public String getPasswordField() { return passwordField; }
-    public String getLogoutIndicator() { return logoutIndicator; }
-    public String getLoggedInIndicator() { return loggedInIndicator; }
-    public String getAuthExcludePattern() { return authExcludePattern; }
-
-    /**
-     * Configures authentication in ZAP, including dynamic context creation if needed.
-     *
-     * @param contextName Name of the ZAP context to use or create.
-     * @param targetUrl   Target base URL (e.g., http://example.com).
-     * @throws IOException if API interaction fails.
-     */
-    public void configureAuthentication(String contextName, String targetUrl) throws IOException {
-        System.out.printf("[Auth] Initializing authentication setup for context: %s%n", contextName);
-
-        // Step 0: Check if context exists
-        String checkContext = ZAP_BASE + "/JSON/context/view/contextList/?apikey=" + API_KEY;
-        String contextListJson = send(checkContext);
-        JsonNode contextList = new ObjectMapper().readTree(contextListJson).path("contextList");
-
-        boolean contextExists = false;
-        for (JsonNode ctx : contextList) {
-            if (ctx.asText().equals(contextName)) {
-                contextExists = true;
-                break;
-            }
-        }
-
-        if (!contextExists) {
-            System.out.printf("[+] Context '%s' not found. Creating it now...%n", contextName);
-            String createContext = String.format(
-                    "%s/JSON/context/action/newContext/?contextName=%s&apikey=%s",
-                    ZAP_BASE,
-                    URLEncoder.encode(contextName, StandardCharsets.UTF_8),
-                    API_KEY
-            );
-            send(createContext);
-        }
-
-        // Step 1: Set authentication method (form-based login)
-        String loginUrl = targetUrl + "/login";
-        String loginPostData = "username={%username%}&password={%password%}";
-
-        String setAuthMethod = String.format(
-                "%s/JSON/authentication/action/setAuthenticationMethod/?contextName=%s&authMethodName=formBasedAuthentication&authMethodConfigParams=loginUrl=%s&loginRequestData=%s&apikey=%s",
-                ZAP_BASE,
-                URLEncoder.encode(contextName, StandardCharsets.UTF_8),
-                URLEncoder.encode(loginUrl, StandardCharsets.UTF_8),
-                URLEncoder.encode(loginPostData, StandardCharsets.UTF_8),
-                API_KEY
-        );
-        send(setAuthMethod);
-
-        // Step 2: Set login indicator (this must match your app's successful login)
-        String setIndicator = String.format(
-                "%s/JSON/authentication/action/setLoggedInIndicator/?contextName=%s&loggedInIndicatorRegex=Welcome&apikey=%s",
-                ZAP_BASE,
-                URLEncoder.encode(contextName, StandardCharsets.UTF_8),
-                API_KEY
-        );
-        send(setIndicator);
-
-        // Step 3: Create and configure user
-        String createUser = String.format(
-                "%s/JSON/users/action/newUser/?contextName=%s&apikey=%s",
-                ZAP_BASE,
-                URLEncoder.encode(contextName, StandardCharsets.UTF_8),
-                API_KEY
-        );
-        String userIdJson = send(createUser);
-        String userId = new ObjectMapper().readTree(userIdJson).path("userId").asText();
-
-        String setCreds = String.format(
-                "%s/JSON/users/action/setAuthenticationCredentials/?contextName=%s&userId=%s&authCredentialsConfigParams=username=%s&password=%s&apikey=%s",
-                ZAP_BASE,
-                URLEncoder.encode(contextName, StandardCharsets.UTF_8),
-                userId,
-                URLEncoder.encode(username, StandardCharsets.UTF_8),
-                URLEncoder.encode(password, StandardCharsets.UTF_8),
-                API_KEY
-        );
-        send(setCreds);
-
-        String enableUser = String.format(
-                "%s/JSON/users/action/setUserEnabled/?contextName=%s&userId=%s&enabled=true&apikey=%s",
-                ZAP_BASE,
-                URLEncoder.encode(contextName, StandardCharsets.UTF_8),
-                userId,
-                API_KEY
-        );
-        send(enableUser);
-
-        // Step 4: Force ZAP to use this user during scanning
-        send(String.format(
-                "%s/JSON/forcedUser/action/setForcedUser/?contextName=%s&userId=%s&apikey=%s",
-                ZAP_BASE,
-                URLEncoder.encode(contextName, StandardCharsets.UTF_8),
-                userId,
-                API_KEY
-        ));
-
-        send(String.format(
-                "%s/JSON/forcedUser/action/setForcedUserModeEnabled/?boolean=true&apikey=%s",
-                ZAP_BASE,
-                API_KEY
-        ));
-
-        System.out.println("[✓] ZAP authentication + context configuration complete.");
+            String logoutIndicator,
+            String authExclude
+    ) {
+        this.contextName = contextName;
+        this.authMethod = authMethod;
+        this.loginUrl = loginUrl;
+        this.username = username;
+        this.password = password;
+        this.usernameField = usernameField;
+        this.passwordField = passwordField;
+        this.loggedInIndicator = loggedInIndicator;
+        this.logoutIndicator = logoutIndicator;
+        this.authExclude = authExclude;
     }
 
+    public void configureAuthentication(String contextName, String targetUrl) {
+        if (!isZapAvailable()) {
+            System.err.println("[!] ZAP not available. Skipping authentication configuration.");
+            return;
+        }
 
-    private String send(String urlStr) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+        try {
+            System.out.printf("[Auth] Setting up auth for context: %s (method: %s)%n", contextName, authMethod);
+
+            // Create context
+            callZap("/context/action/newContext/", "contextName=" + encode(contextName));
+
+            // Set form-based auth method
+            String authParams = String.format("loginUrl=%s&loginRequestData=%s=%s&%s=%s",
+                    encode(loginUrl),
+                    encode(usernameField), encode(username),
+                    encode(passwordField), encode(password)
+            );
+
+            callZap("/authentication/action/setAuthenticationMethod/", String.format(
+                    "contextName=%s&authMethodName=%s&authMethodConfigParams=%s",
+                    encode(contextName), encode(authMethod), authParams
+            ));
+
+            // Add user
+            String userJson = callZap("/users/action/newUser/", "contextName=" + encode(contextName));
+            String userId = userJson.replaceAll("[^0-9]", "");
+
+            callZap("/users/action/setAuthenticationCredentials/", String.format(
+                    "contextName=%s&userId=%s&authCredentialsConfigParams=username=%s&password=%s",
+                    encode(contextName), userId, encode(username), encode(password)
+            ));
+
+            callZap("/users/action/setUserEnabled/", String.format(
+                    "contextName=%s&userId=%s&enabled=true",
+                    encode(contextName), userId
+            ));
+
+            // Set logged-in indicator (optional)
+            if (loggedInIndicator != null && !loggedInIndicator.isBlank()) {
+                callZap("/authentication/action/setLoggedInIndicator/", String.format(
+                        "contextName=%s&loggedInIndicatorRegex=%s",
+                        encode(contextName), encode(loggedInIndicator)
+                ));
+            }
+
+            // Set logged-out indicator (optional)
+            if (logoutIndicator != null && !logoutIndicator.isBlank()) {
+                callZap("/authentication/action/setLoggedOutIndicator/", String.format(
+                        "contextName=%s&loggedOutIndicatorRegex=%s",
+                        encode(contextName), encode(logoutIndicator)
+                ));
+            }
+
+            // Exclude from auth (optional)
+            if (authExclude != null && !authExclude.isBlank()) {
+                callZap("/authentication/action/excludeFromAuthentication/", String.format(
+                        "contextName=%s&regex=%s",
+                        encode(contextName), encode(authExclude)
+                ));
+            }
+
+            System.out.println("[✓] Authentication configured successfully.");
+
+        } catch (Exception e) {
+            System.err.println("[!] Failed to configure authentication: " + e.getMessage());
+        }
+    }
+
+    private boolean isZapAvailable() {
+        try {
+            URL url = new URL(ZAP_API_BASE + "/core/view/version/");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(3000);
+            conn.setReadTimeout(3000);
+            conn.setRequestMethod("GET");
+            return conn.getResponseCode() == 200;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private String callZap(String path, String query) throws IOException {
+        URL url = new URL(ZAP_API_BASE + path + "?" + query);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
-        conn.setRequestProperty("Accept", "application/json");
+        if (conn.getResponseCode() != 200) {
+            throw new IOException("Failed to call ZAP API: " + url);
+        }
+        return new String(conn.getInputStream().readAllBytes());
+    }
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(
-                conn.getResponseCode() < 400 ? conn.getInputStream() : conn.getErrorStream()
-        ));
+    private String encode(String value) {
+        try {
+            return URLEncoder.encode(value, "UTF-8");
+        } catch (Exception e) {
+            return value;
+        }
+    }
 
-        StringBuilder response = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null) response.append(line);
-        reader.close();
-        return response.toString();
+    // Getters (if needed)
+    public String getContextName() {
+        return contextName;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
     }
 }

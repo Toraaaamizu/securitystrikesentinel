@@ -45,6 +45,12 @@ public class SecurityStrikeCLI {
     @Parameter(names = {"--auth-password"}, description = "Password for login")
     private String authPassword;
 
+    @Parameter(names = {"--auth-username-field"}, description = "Username input field name")
+    private String usernameField;
+
+    @Parameter(names = {"--auth-password-field"}, description = "Password input field name")
+    private String passwordField;
+
     @Parameter(names = {"--auth-logged-in-indicator"}, description = "Pattern or keyword indicating login success")
     private String loggedInIndicator;
 
@@ -53,12 +59,6 @@ public class SecurityStrikeCLI {
 
     @Parameter(names = {"--auth-exclude"}, description = "Regex pattern to exclude from authentication")
     private String authExclude;
-
-    @Parameter(names = {"--username-field"}, description = "Field name for username (default: 'username')")
-    private String usernameField = "username";
-
-    @Parameter(names = {"--password-field"}, description = "Field name for password (default: 'password')")
-    private String passwordField = "password";
 
     @Parameter(names = {"--help", "-h"}, help = true, description = "Show this help message")
     private boolean help;
@@ -85,12 +85,16 @@ public class SecurityStrikeCLI {
                 if (cli.enableDelta) System.out.println("[i] Delta comparison enabled");
 
                 if (cli.context == null && cli.authMethod != null) {
-                    System.out.println("[?] Context not provided. Suggesting '--context default-context'");
                     cli.context = "default-context";
+                    System.out.println("[?] Context not provided. Using default: " + cli.context);
                 }
 
                 ZapAuthManager authManager = null;
-                if (cli.authUsername != null && cli.authPassword != null && cli.authMethod != null) {
+                if (
+                    cli.authUsername != null && cli.authPassword != null &&
+                    cli.authMethod != null && cli.authLoginUrl != null &&
+                    cli.usernameField != null && cli.passwordField != null
+                ) {
                     authManager = new ZapAuthManager(
                             cli.context != null ? cli.context : "default-context",
                             cli.authUsername,
@@ -103,15 +107,14 @@ public class SecurityStrikeCLI {
                             cli.loggedInIndicator,
                             cli.authExclude
                     );
-                    System.out.printf("[✓] Auth configured for user: %s (method: %s)%n",
-                            cli.authUsername, cli.authMethod);
+                    System.out.printf("[✓] Auth configured for user: %s%n", cli.authUsername);
                 }
 
                 ZapScanner scanner = new ZapScanner(
                         cli.context,
                         cli.scanPolicy != null ? cli.scanPolicy : "Default Policy",
-                        !cli.ciMode,   // generate HTML only outside CI
-                        cli.ciMode,    // fail on vuln only in CI
+                        !cli.ciMode,   // Generate HTML if not in CI
+                        cli.ciMode,    // Fail build on vuln in CI
                         cli.enableDelta,
                         authManager
                 );
@@ -143,8 +146,8 @@ public class SecurityStrikeCLI {
 
         } catch (Exception e) {
             System.err.println("[!] Error: " + e.getMessage());
-            jc.usage();
             e.printStackTrace();
+            jc.usage();
         }
     }
 }

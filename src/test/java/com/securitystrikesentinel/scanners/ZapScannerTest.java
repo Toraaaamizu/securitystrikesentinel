@@ -1,7 +1,7 @@
 package com.securitystrikesentinel.scanners;
 
-import com.securitystrikesentinel.reports.HtmlReportGenerator;
 import com.securitystrikesentinel.auth.ZapAuthManager;
+import com.securitystrikesentinel.reports.HtmlReportGenerator;
 import com.securitystrikesentinel.scanners.zap.ZapScanner;
 import org.junit.jupiter.api.*;
 
@@ -11,19 +11,24 @@ import java.nio.file.Paths;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ZapScannerTest {
 
     private static final String TARGET_URL = "http://zero.webappsecurity.com";
     private static final Path REPORT_JSON = Paths.get("reports/zap_result.json");
     private static final Path REPORT_HTML = Paths.get("reports/detailed-report.html");
+    private static boolean zapAvailable;
 
     @BeforeAll
-    static void ensureZapAvailable() {
+    static void checkZapAvailability() {
         try {
             ZapScanner.verifyZapApiAvailable();
+            zapAvailable = true;
         } catch (Exception e) {
-            fail("ZAP API not reachable: " + e.getMessage());
+            zapAvailable = false;
+            System.err.println("[!] ZAP is not available: " + e.getMessage());
         }
     }
 
@@ -35,19 +40,23 @@ public class ZapScannerTest {
     }
 
     @Test
+    @Order(1)
     public void testAuthenticatedScanGeneratesFindings() throws Exception {
-    	ZapAuthManager auth = new ZapAuthManager(
-    		    "default-context",
-    		    "testuser",
-    		    "testpass",
-    		    "form", // or "manual"
-    		    "http://zero.webappsecurity.com/login.html",
-    		    "username",
-    		    "password",
-    		    "logout",  // logout indicator
-    		    "login",   // login indicator
-    		    null       // exclude pattern
-    		);
+        assumeTrue(zapAvailable, "Skipping test: ZAP is not running.");
+
+        ZapAuthManager auth = new ZapAuthManager(
+        	    "default-context",
+        	    "form",
+        	    "http://zero.webappsecurity.com/login.html",
+        	    "testuser",
+        	    "testpass",
+        	    "username",               // username field in form
+        	    "password",               // password field in form
+        	    "Accounts Overview",      // loggedInIndicator (adjust to actual success indicator)
+        	    "logout",                 // logoutIndicator (optional or null)
+        	    null                      // authExclude (optional or null)
+        	);
+
 
         ZapScanner scanner = new ZapScanner(
                 auth.getContextName(),
@@ -63,20 +72,20 @@ public class ZapScannerTest {
         assertTrue(Files.exists(REPORT_JSON), "Expected zap_result.json to exist");
         assertTrue(Files.exists(REPORT_HTML), "Expected detailed-report.html to exist");
 
-        // 🔍 Flexible validation: look for any of several auth-related keywords
-        List<String> htmlLines = Files.readAllLines(REPORT_HTML);
-        boolean containsAuthKeyword = htmlLines.stream().anyMatch(line ->
-                line.toLowerCase().contains("login") ||
-                line.toLowerCase().contains("logout") ||
-                line.toLowerCase().contains("authentication")
-        );
+        List<String> lines = Files.readAllLines(REPORT_HTML);
+        boolean mentionsAuth = lines.stream().anyMatch(line ->
+                line.toLowerCase().contains("login")
+                        || line.toLowerCase().contains("logout")
+                        || line.toLowerCase().contains("authentication"));
 
-        assertTrue(containsAuthKeyword,
-                "Expected report to contain authentication-related keywords (login/logout/authentication)");
+        assertTrue(mentionsAuth, "Expected report to contain authentication-related keywords (login/logout/authentication)");
     }
 
     @Test
+    @Order(2)
     public void testQuickUnauthenticatedScan() throws Exception {
+        assumeTrue(zapAvailable, "Skipping test: ZAP is not running.");
+
         ZapScanner scanner = new ZapScanner(null, "Default Policy", true, false, false, null);
         int findings = scanner.scan(TARGET_URL, true);
 

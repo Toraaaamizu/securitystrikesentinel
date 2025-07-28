@@ -10,9 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-/**
- * Main entry point for running Security Strike Sentinel from CLI.
- */
 public class Main {
 
     public static class CLIOptions {
@@ -26,7 +23,7 @@ public class Main {
         @Parameter(names = {"--html-report", "-r"}, description = "Generate HTML report from last scan")
         private boolean generateReport = false;
 
-        @Parameter(names = {"--context"}, description = "ZAP Context name to use (required for auth)")
+        @Parameter(names = {"--context"}, description = "ZAP Context name to use (optional)")
         private String contextName;
 
         @Parameter(names = {"--policy"}, description = "ZAP Scan Policy name to use (optional)")
@@ -55,6 +52,12 @@ public class Main {
 
         @Parameter(names = {"--auth-logout-indicator"}, description = "Regex/Indicator for logout")
         private String logoutIndicator;
+
+        @Parameter(names = {"--auth-username-field"}, description = "Username input field name")
+        private String usernameField;
+
+        @Parameter(names = {"--auth-password-field"}, description = "Password input field name")
+        private String passwordField;
 
         @Parameter(names = {"--auth-exclude"}, description = "Regex pattern to exclude from auth")
         private String authExclude;
@@ -88,30 +91,33 @@ public class Main {
 
                 boolean failOnVuln = options.ciMode || Boolean.parseBoolean(System.getProperty("fail.cvss", "false"));
 
-                // Auth manager setup
                 ZapAuthManager authManager = null;
-                if (options.authUsername != null && options.authPassword != null && options.contextName != null) {
+                if (
+                    options.authUsername != null && options.authPassword != null &&
+                    options.authMethod != null && options.authLoginUrl != null &&
+                    options.usernameField != null && options.passwordField != null
+                ) {
                     authManager = new ZapAuthManager(
-                            options.contextName,
+                            options.contextName != null ? options.contextName : "default-context",
                             options.authUsername,
                             options.authPassword,
-                            options.authMethod != null ? options.authMethod : "form",
+                            options.authMethod,
                             options.authLoginUrl,
-                            "username", // Default form field
-                            "password", // Default form field
+                            options.usernameField,
+                            options.passwordField,
                             options.logoutIndicator,
                             options.loggedInIndicator,
                             options.authExclude
                     );
-                    System.out.printf("[i] Authentication configured for user '%s' via method '%s'%n",
-                            options.authUsername, options.authMethod != null ? options.authMethod : "form");
+
+                    System.out.printf("[✓] Auth configured for user '%s' using method '%s'%n",
+                            options.authUsername, options.authMethod);
                 }
 
-                // Run scan
                 ZapScanner scanner = new ZapScanner(
                         options.contextName,
                         options.policyName,
-                        true,               // Always generate HTML
+                        true,               // Generate HTML always
                         failOnVuln,
                         options.enableDelta,
                         authManager
