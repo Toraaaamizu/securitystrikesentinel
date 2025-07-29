@@ -124,7 +124,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>com.securitystrikesentinel.Main</mainClass>
+				<mainClass>com.securitystrikesentinel.launcher.Main</mainClass>
             </manifest>
           </archive>
         </configuration>
@@ -145,7 +145,7 @@
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.securitystrikesentinel.Main</mainClass>
+                  <mainClass>com.securitystrikesentinel.launcher.Main</mainClass>
                 </transformer>
               </transformers>
             </configuration>
