@@ -3,6 +3,7 @@ package com.securitystrikesentinel.cli;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -62,6 +63,13 @@ public class SecurityStrikeCLI {
 
     @Parameter(names = {"--help", "-h"}, help = true, description = "Show this help message")
     private boolean help;
+   
+    @Parameter(names = "--export-json", description = "Export scan results as JSON")
+    public boolean exportJson = false;
+
+    @Parameter(names = "--export-csv", description = "Export scan results as CSV")
+    public boolean exportCsv = false;
+
 
     public static void main(String... args) {
         SecurityStrikeCLI cli = new SecurityStrikeCLI();
@@ -77,6 +85,8 @@ public class SecurityStrikeCLI {
                 jc.usage();
                 return;
             }
+            LocalDateTime scanStart = LocalDateTime.now();
+            LocalDateTime scanEnd = LocalDateTime.now();
 
             if (cli.zapTarget != null) {
                 System.out.println("[+] Launching ZAP scan on: " + cli.zapTarget);
@@ -136,7 +146,11 @@ public class SecurityStrikeCLI {
                     HtmlReportGenerator generator = new HtmlReportGenerator();
                     generator.generateDetailedReportFromJson(
                             cli.zapTarget != null ? cli.zapTarget : "Unknown Target",
-                            jsonPath.toString()
+                            jsonPath.toString(),
+                            scanStart,
+                            scanEnd,
+                            "ZAP 2.14.0", // Optional: replace with dynamic retrieval if needed
+                            "Security Strike Sentinel v1.0"
                     );
                     System.out.println("[✓] HTML report generated successfully.");
                 } else {

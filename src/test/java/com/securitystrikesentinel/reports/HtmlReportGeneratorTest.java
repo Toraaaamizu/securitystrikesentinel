@@ -5,6 +5,8 @@ import org.junit.jupiter.api.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class HtmlReportGeneratorTest {
@@ -52,7 +54,14 @@ public class HtmlReportGeneratorTest {
     @Test
     public void testGenerateDetailedReportFromJson() throws Exception {
         HtmlReportGenerator generator = new HtmlReportGenerator();
-        generator.generateDetailedReportFromJson(TEST_URL, JSON_REPORT_PATH.toString());
+        generator.generateDetailedReportFromJson(
+                TEST_URL,
+                JSON_REPORT_PATH.toString(),
+                LocalDateTime.now().minusMinutes(1),
+                LocalDateTime.now(),
+                "mock-zap-version",
+                "test-version"
+        );
 
         assertTrue(Files.exists(DETAILED_REPORT_PATH), "Expected detailed-report.html to be created.");
         assertTrue(Files.size(DETAILED_REPORT_PATH) > 0, "Generated detailed HTML report should not be empty.");

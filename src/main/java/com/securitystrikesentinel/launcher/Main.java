@@ -3,6 +3,7 @@ package com.securitystrikesentinel.launcher;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -81,6 +82,9 @@ public class Main {
                 return;
             }
 
+            LocalDateTime scanStart = LocalDateTime.now();
+            LocalDateTime scanEnd = LocalDateTime.now();
+
             if (options.zapTarget != null) {
                 System.out.println("[+] Running ZAP scan on: " + options.zapTarget);
                 if (options.quickScan) System.out.println("[i] Quick scan mode enabled");
@@ -93,9 +97,9 @@ public class Main {
 
                 ZapAuthManager authManager = null;
                 if (
-                    options.authUsername != null && options.authPassword != null &&
-                    options.authMethod != null && options.authLoginUrl != null &&
-                    options.usernameField != null && options.passwordField != null
+                        options.authUsername != null && options.authPassword != null &&
+                        options.authMethod != null && options.authLoginUrl != null &&
+                        options.usernameField != null && options.passwordField != null
                 ) {
                     authManager = new ZapAuthManager(
                             options.contextName != null ? options.contextName : "default-context",
@@ -117,14 +121,30 @@ public class Main {
                 ZapScanner scanner = new ZapScanner(
                         options.contextName,
                         options.policyName,
-                        true,               // Generate HTML always
+                        true, // generate HTML always
                         failOnVuln,
                         options.enableDelta,
                         authManager
                 );
 
+                scanStart = LocalDateTime.now();
                 int findings = scanner.scan(options.zapTarget, options.quickScan);
+                scanEnd = LocalDateTime.now();
+
                 System.out.printf("[✓] ZAP scan completed. Findings: %d%n", findings);
+
+                // Always generate HTML if scan was run
+                HtmlReportGenerator reportGen = new HtmlReportGenerator();
+                reportGen.generateDetailedReportFromJson(
+                        options.zapTarget,
+                        "reports/zap_result.json",
+                        scanStart,
+                        scanEnd,
+                        "ZAP 2.14.0",                // TODO: replace with dynamic version fetch if needed
+                        "Security Strike Sentinel"   // Replace with config version if managed
+                );
+
+                System.out.println("[✓] HTML report generated successfully.");
 
                 if (options.ciMode && findings > 0) {
                     System.err.println("[!] CI mode: vulnerabilities found. Exiting with non-zero status.");
@@ -132,17 +152,22 @@ public class Main {
                 }
             }
 
-            if (options.generateReport) {
-                System.out.println("[+] Generating HTML report...");
+            // Optional: allow --html-report to regenerate report after scan
+            if (options.generateReport && options.zapTarget != null) {
+                System.out.println("[+] Regenerating HTML report...");
                 Path jsonPath = Paths.get("reports/zap_result.json");
 
                 if (Files.exists(jsonPath)) {
                     HtmlReportGenerator generator = new HtmlReportGenerator();
                     generator.generateDetailedReportFromJson(
-                            options.zapTarget != null ? options.zapTarget : "Unknown Target",
-                            jsonPath.toString()
+                            options.zapTarget,
+                            jsonPath.toString(),
+                            scanStart != null ? scanStart : LocalDateTime.now().minusMinutes(1),
+                            scanEnd != null ? scanEnd : LocalDateTime.now(),
+                            "ZAP 2.14.0",
+                            "Security Strike Sentinel"
                     );
-                    System.out.println("[✓] HTML report generated successfully.");
+                    System.out.println("[✓] HTML report regenerated.");
                 } else {
                     System.err.println("[!] No scan result JSON found. Run --zapscan first.");
                 }

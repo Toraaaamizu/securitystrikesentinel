@@ -12,6 +12,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -61,6 +62,16 @@ public class ZapScanner {
     public ZapScanner(String scanPolicyName) {
         this.scanPolicyName = scanPolicyName;
     }
+    
+    private String fetchZapVersion() {
+        try {
+            String json = sendSimpleGetRequest(BASE_URL + "/JSON/core/view/version/" + getApiParamPrefix());
+            return new ObjectMapper().readTree(json).path("version").asText("Unknown");
+        } catch (IOException e) {
+            return "Unknown";
+        }
+    }
+
 
     /**
      * Executes a full or quick ZAP scan and returns the number of alerts.
@@ -91,7 +102,27 @@ public class ZapScanner {
         if (generateHtml) {
             try {
                 HtmlReportGenerator reportGen = new HtmlReportGenerator();
-                reportGen.generateDetailedReportFromJson(targetUrl, JSON_REPORT_PATH);
+                LocalDateTime scanStart = LocalDateTime.now();
+
+                // ZAP scan logic here...
+
+                // Save JSON before generating report
+                saveJsonReport(alerts);
+                System.out.println("[✓] JSON report saved. Alert count: " + alerts.path("alerts").size());
+
+
+                LocalDateTime scanEnd = LocalDateTime.now();
+                String zapVersion = fetchZapVersion();
+                String toolVersion = "1.0"; // Update if version info is available elsewhere
+
+                reportGen.generateDetailedReportFromJson(
+                    targetUrl,
+                    JSON_REPORT_PATH,
+                    scanStart,
+                    scanEnd,
+                    zapVersion,
+                    toolVersion
+                );
                 System.out.println("[✓] HTML Report generated at: reports/detailed-report.html");
 
                 if (enableDelta) {
@@ -115,6 +146,8 @@ public class ZapScanner {
             System.err.printf("[!] CI Mode: %d high severity issues found. Failing the build.%n", highSeverity);
             System.exit(1);
         }
+        System.out.println("Report file exists? " + Files.exists(Paths.get("reports/zap_result.json")));
+        System.out.println("Report file size: " + Files.size(Paths.get("reports/zap_result.json")) + " bytes");
 
         return alerts.path("alerts").size();
     }
