@@ -76,7 +76,8 @@ public class ZapScanner {
     /**
      * Executes a full or quick ZAP scan and returns the number of alerts.
      */
-    public int scan(String targetUrl, boolean quickScan) throws IOException, InterruptedException {
+    public int scan(String targetUrl, boolean quickScan, int spiderTimeoutOverride, int ascanTimeoutOverride) throws IOException, InterruptedException {
+
         verifyZapApiAvailable();
 
         if (authManager != null) {
@@ -85,8 +86,13 @@ public class ZapScanner {
         }
 
         long siteRtt = measureSiteResponseTime(targetUrl);
-        int spiderTimeout = calculateDynamicTimeout(siteRtt, 150);
-        int ascanTimeout = calculateDynamicTimeout(siteRtt, 900);
+        int spiderTimeout = spiderTimeoutOverride > 0
+        	    ? spiderTimeoutOverride
+        	    : calculateDynamicTimeout(siteRtt, 150);
+        int ascanTimeout = ascanTimeoutOverride > 0
+        	    ? ascanTimeoutOverride
+        	    : calculateDynamicTimeout(siteRtt, 1800);
+
 
         runZapScan(targetUrl, quickScan, spiderTimeout, ascanTimeout);
 

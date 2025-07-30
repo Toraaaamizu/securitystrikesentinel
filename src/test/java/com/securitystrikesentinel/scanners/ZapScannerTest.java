@@ -28,7 +28,7 @@ public class ZapScannerTest {
                 null                    // authManager
         );
 
-        int findings = scanner.scan(TEST_TARGET, true); // quick scan
+        int findings = scanner.scan(TEST_TARGET, true, -1, -1); // quick scan
 
         assertTrue(Files.exists(REPORT_PATH), "Expected detailed-report.html to be created.");
         String content = Files.readString(REPORT_PATH, StandardCharsets.UTF_8);

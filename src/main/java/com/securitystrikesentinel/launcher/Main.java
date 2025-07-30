@@ -65,6 +65,13 @@ public class Main {
 
         @Parameter(names = {"--help", "-h"}, help = true, description = "Show usage")
         private boolean help = false;
+        
+        @Parameter(names = "--spider-timeout", description = "Spider timeout in seconds (default 150s adjusted dynamically)")
+        private Integer spiderTimeout;
+
+        @Parameter(names = "--ascan-timeout", description = "Active scan timeout in seconds (default 900s adjusted dynamically)")
+        private Integer ascanTimeout;
+
     }
 
     public static void main(String[] args) {
@@ -128,7 +135,13 @@ public class Main {
                 );
 
                 scanStart = LocalDateTime.now();
-                int findings = scanner.scan(options.zapTarget, options.quickScan);
+                int findings = scanner.scan(
+                	    options.zapTarget,
+                	    options.quickScan,
+                	    options.spiderTimeout != null ? options.spiderTimeout : -1,
+                	    options.ascanTimeout != null ? options.ascanTimeout : -1
+                	);
+
                 scanEnd = LocalDateTime.now();
 
                 System.out.printf("[✓] ZAP scan completed. Findings: %d%n", findings);

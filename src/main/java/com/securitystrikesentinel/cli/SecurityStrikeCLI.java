@@ -129,7 +129,8 @@ public class SecurityStrikeCLI {
                         authManager
                 );
 
-                int findings = scanner.scan(cli.zapTarget, cli.quickScan);
+                int findings = scanner.scan(cli.zapTarget, cli.quickScan, -1, -1);
+                
                 System.out.printf("[✓] Scan complete. Total findings: %d%n", findings);
 
                 if (cli.ciMode && findings > 0) {
