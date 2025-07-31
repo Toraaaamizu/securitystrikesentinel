@@ -195,23 +195,54 @@ public class HtmlReportGenerator {
             </ul>
 
             <h2>Risk Chart</h2>
-            <canvas id="riskChart" width="600" height="300"></canvas>
+            <canvas id="riskChart" width="500" height="250"></canvas>
             <script>
                 const ctx = document.getElementById('riskChart').getContext('2d');
                 const chart = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: ['High', 'Medium', 'Low', 'Informational'],
+                        labels: ['High Risk', 'Medium Risk', 'Low Risk', 'Informational'],
                         datasets: [{
-                            label: 'Vulnerability Count',
+                            label: 'Severity Count',
                             data: [%d, %d, %d, %d],
                             backgroundColor: ['#d62828', '#f77f00', '#fcbf49', '#adb5bd'],
                             borderWidth: 1
                         }]
                     },
                     options: {
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: {
+                                    color: '#000',
+                                    font: {
+                                        size: 14
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Severity Levels',
+                                    font: {
+                                        size: 16,
+                                        weight: 'bold'
+                                    }
+                                }
+                            }
+                        },
                         scales: {
-                            y: { beginAtZero: true }
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Issues'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Risk Categories'
+                                }
+                            }
                         }
                     }
                 });
@@ -235,5 +266,6 @@ public class HtmlReportGenerator {
                 versionFooter
         );
     }
+
 
 }
