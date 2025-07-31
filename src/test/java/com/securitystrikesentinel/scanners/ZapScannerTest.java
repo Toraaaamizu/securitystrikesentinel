@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ZapScannerTest {
 
-    private static final String TEST_TARGET = "http://testhtml5.vulnweb.com"; // Public demo with login
+    private static final String TEST_TARGET = "http://zero.webappsecurity.com"; // Public demo with login
     private static final Path REPORT_PATH = Paths.get("reports/detailed-report.html");
 
     @BeforeEach

@@ -139,27 +139,101 @@ public class HtmlReportGenerator {
     }
 
     private String buildHtmlReport(String target, int vulnCount, String vulnDetails, Map<String, Integer> stats, LocalDateTime scanStart, LocalDateTime scanEnd, String zapVersion, String toolVersion) {
-        String duration = scanStart != null && scanEnd != null ? Duration.between(scanStart, scanEnd).toMinutesPart() + "m " + Duration.between(scanStart, scanEnd).toSecondsPart() + "s" : "N/A";
+        String duration = (scanStart != null && scanEnd != null)
+                ? Duration.between(scanStart, scanEnd).toMinutesPart() + "m " + Duration.between(scanStart, scanEnd).toSecondsPart() + "s"
+                : "N/A";
+
         String color = vulnCount > 0 ? "#d62828" : "#28a745";
         String statusMsg = vulnCount > 0
-            ? "<p><strong>⚠️ Attention:</strong> " + vulnCount + " vulnerability(s) found. Review and mitigate promptly.</p>"
-            : "<p><strong>✅ No vulnerabilities found. Target appears secure.</strong></p>";
+                ? "<p><strong>⚠️ Attention:</strong> " + vulnCount + " vulnerability(s) found. Review and mitigate promptly.</p>"
+                : "<p><strong>✅ No vulnerabilities found. Target appears secure.</strong></p>";
 
         int high = toInt(stats.get("High"));
         int medium = toInt(stats.get("Medium"));
         int low = toInt(stats.get("Low"));
         int info = toInt(stats.get("Informational"));
 
-        String versionFooter = String.format("<footer style='margin-top:2em; font-size:0.9em;'>ZAP Version: %s | Tool Version: %s</footer>", escapeHtml(zapVersion != null ? zapVersion : "N/A"), escapeHtml(toolVersion != null ? toolVersion : "N/A"));
+        String versionFooter = String.format(
+                "<footer style='margin-top:2em; font-size:0.9em;'>ZAP Version: %s | Tool Version: %s</footer>",
+                escapeHtml(zapVersion != null ? zapVersion : "N/A"),
+                escapeHtml(toolVersion != null ? toolVersion : "1.0")
+        );
 
-        return String.format(
-            // original HTML content here (omitted for brevity)
-            "... your existing HTML with %s placeholders for duration, versionFooter, etc ...",
-            escapeHtml(target), color, vulnCount,
-            LocalDateTime.now().format(FORMATTER), duration,
-            statusMsg, vulnDetails,
-            high, medium, low, info,
-            versionFooter
+        return """
+        <!DOCTYPE html>
+        <html lang='en'>
+        <head>
+            <meta charset='UTF-8'>
+            <title>Security Strike Sentinel Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; background: #f8f9fa; }
+                h1 { color: %s; }
+                table { border-collapse: collapse; width: 100%%; margin-top: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; }
+                th { background-color: #343a40; color: white; }
+                tr:nth-child(even) { background-color: #f2f2f2; }
+                .high { color: #d62828; font-weight: bold; }
+                .medium { color: #f77f00; font-weight: bold; }
+                .low { color: #fcbf49; font-weight: bold; }
+                .informational { color: #6c757d; }
+            </style>
+            <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+        </head>
+        <body>
+            <h1>Security Strike Sentinel</h1>
+            <p><strong>Target:</strong> %s</p>
+            <p><strong>Scan Date:</strong> %s</p>
+            <p><strong>Scan Duration:</strong> %s</p>
+            %s
+
+            <h2>Risk Breakdown</h2>
+            <ul>
+                <li><strong>High:</strong> %d</li>
+                <li><strong>Medium:</strong> %d</li>
+                <li><strong>Low:</strong> %d</li>
+                <li><strong>Informational:</strong> %d</li>
+            </ul>
+
+            <h2>Risk Chart</h2>
+            <canvas id="riskChart" width="600" height="300"></canvas>
+            <script>
+                const ctx = document.getElementById('riskChart').getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['High', 'Medium', 'Low', 'Informational'],
+                        datasets: [{
+                            label: 'Vulnerability Count',
+                            data: [%d, %d, %d, %d],
+                            backgroundColor: ['#d62828', '#f77f00', '#fcbf49', '#adb5bd'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            </script>
+
+            <h2>Vulnerability Details</h2>
+            %s
+
+            %s
+        </body>
+        </html>
+        """.formatted(
+                color,
+                escapeHtml(target),
+                LocalDateTime.now().format(FORMATTER),
+                duration,
+                statusMsg,
+                high, medium, low, info,
+                high, medium, low, info,
+                vulnDetails,
+                versionFooter
         );
     }
+
 }
