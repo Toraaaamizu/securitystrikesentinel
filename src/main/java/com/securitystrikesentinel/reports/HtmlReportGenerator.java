@@ -38,14 +38,19 @@ public class HtmlReportGenerator {
         File jsonFile = new File(jsonPath);
         if (!jsonFile.exists()) throw new FileNotFoundException("JSON file not found: " + jsonPath);
 
-        JsonNode root = MAPPER.readTree(jsonFile);
-        int vulnCount = countVulnerabilities(root);
-        String vulnDetails = root.has("alerts") ? parseZapAlerts(root) : parseJsonVulnerabilities(root);
-        Map<String, Integer> riskStats = calculateRiskStatistics(root);
+        try {
+            JsonNode root = MAPPER.readTree(jsonFile);
+            int vulnCount = countVulnerabilities(root);
+            String vulnDetails = root.has("alerts") ? parseZapAlerts(root) : parseJsonVulnerabilities(root);
+            Map<String, Integer> riskStats = calculateRiskStatistics(root);
 
-        String html = buildHtmlReport(target, vulnCount, vulnDetails, riskStats, null, null, "N/A", "1.0");
-        Files.writeString(REPORTS_DIR.resolve("detailed-report.html"), html);
-        System.out.println("✔ Detailed report generated: reports/detailed-report.html");
+            String html = buildHtmlReport(target, vulnCount, vulnDetails, riskStats, scanStart, scanEnd, zapVersion, toolVersion);
+            Path reportPath = REPORTS_DIR.resolve("detailed-report.html");
+            Files.writeString(reportPath, html);
+            System.out.println("✔ Detailed report generated: " + reportPath);
+        } catch (IOException e) {
+            throw new IOException("[!] Failed to read or parse JSON: " + e.getMessage(), e);
+        }
     }
 
     private void ensureReportsDirectory() throws IOException {
@@ -218,14 +223,6 @@ public class HtmlReportGenerator {
                                     font: {
                                         size: 14
                                     }
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Severity Levels',
-                                    font: {
-                                        size: 16,
-                                        weight: 'bold'
-                                    }
                                 }
                             }
                         },
@@ -266,6 +263,4 @@ public class HtmlReportGenerator {
                 versionFooter
         );
     }
-
-
 }

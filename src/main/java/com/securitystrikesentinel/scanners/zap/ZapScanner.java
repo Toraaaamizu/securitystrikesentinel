@@ -43,24 +43,31 @@ public class ZapScanner {
     private boolean failOnVuln;
     private boolean enableDelta;
     private ZapAuthManager authManager;
+    private final boolean generateCsv;
+
 
     /**
      * Constructor with full configuration.
      */
-    public ZapScanner(String contextName, String policyName, boolean generateHtml, boolean failOnVuln, boolean enableDelta, ZapAuthManager authManager) {
-        this.contextName = contextName;
-        this.scanPolicyName = policyName != null ? policyName : "Default Policy";
-        this.generateHtml = generateHtml;
-        this.failOnVuln = failOnVuln;
-        this.enableDelta = enableDelta;
-        this.authManager = authManager;
-    }
+    public ZapScanner(String contextName, String scanPolicy, boolean htmlReport,
+            boolean failOnVulnerabilities, boolean enableDelta,
+            ZapAuthManager authManager, boolean csvReport) {
+this.contextName = contextName;
+this.scanPolicyName = scanPolicy;
+this.generateHtml = htmlReport;
+this.failOnVuln = failOnVulnerabilities;
+this.enableDelta = enableDelta;
+this.authManager = authManager;
+this.generateCsv = csvReport;
+}
+
 
     /**
      * Basic constructor using only policy.
      */
-    public ZapScanner(String scanPolicyName) {
+    public ZapScanner(String scanPolicyName, boolean csvReport) {
         this.scanPolicyName = scanPolicyName;
+		this.generateCsv = csvReport;
     }
     
     private String fetchZapVersion() {
