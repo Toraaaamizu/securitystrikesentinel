@@ -200,7 +200,7 @@ public class HtmlReportGenerator {
             </ul>
 
             <h2>Risk Chart</h2>
-            <canvas id="riskChart" width="500" height="250"></canvas>
+            <canvas id=\"riskChart\" style=\"max-width: 600px; height: 300px;\"></canvas>
             <script>
                 const ctx = document.getElementById('riskChart').getContext('2d');
                 const chart = new Chart(ctx, {
