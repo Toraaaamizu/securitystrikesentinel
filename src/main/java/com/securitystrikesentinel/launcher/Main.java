@@ -30,7 +30,7 @@ public class Main {
         @Parameter(names = {"--policy"}, description = "ZAP Scan Policy name to use (optional)")
         private String policyName;
 
-        @Parameter(names = {"--ci-mode"}, description = "Enable CI mode (non-zero exit if vulnerabilities found)")
+        @Parameter(names = {"--ci-mode", "--ci"}, description = "Enable CI mode (non-zero exit if vulnerabilities found)")
         private boolean ciMode = false;
 
         @Parameter(names = {"--delta"}, description = "Enable delta reporting (compare with previous snapshot)")
@@ -126,13 +126,15 @@ public class Main {
                 }
 
                 ZapScanner scanner = new ZapScanner(
-                        options.contextName,
-                        options.policyName,
-                        true, // generate HTML always
-                        failOnVuln,
-                        options.enableDelta,
-                        authManager
-                );
+                	    options.contextName,
+                	    options.policyName,
+                	    true,                  // generateHtml
+                	    failOnVuln,            // fail on high severity
+                	    options.enableDelta,   // delta enabled
+                	    authManager,
+                	    false                  // generateCsv: toggle later via flag if needed
+                	);
+
 
                 scanStart = LocalDateTime.now();
                 int findings = scanner.scan(

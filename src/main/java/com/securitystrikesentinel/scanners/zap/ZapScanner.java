@@ -14,18 +14,24 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.securitystrikesentinel.auth.ZapAuthManager;
+import com.securitystrikesentinel.reports.CsvReportWriter;
 import com.securitystrikesentinel.reports.HtmlReportGenerator;
 
 /**
  * ZapScanner handles integration with the OWASP ZAP API, including scanning, authentication, and report generation.
  */
 public class ZapScanner {
+
+    private static final Logger LOGGER = Logger.getLogger(ZapScanner.class.getName());
+
 
     private static final String ZAP_HOST = "localhost";
     private static final int ZAP_PORT = 8080;
@@ -42,34 +48,18 @@ public class ZapScanner {
     private boolean generateHtml;
     private boolean failOnVuln;
     private boolean enableDelta;
+    private boolean generateCsv;
     private ZapAuthManager authManager;
-    private final boolean generateCsv;
 
-
-    /**
-     * Constructor with full configuration.
-     */
-    public ZapScanner(String contextName, String scanPolicy, boolean htmlReport,
-            boolean failOnVulnerabilities, boolean enableDelta,
-            ZapAuthManager authManager, boolean csvReport) {
-this.contextName = contextName;
-this.scanPolicyName = scanPolicy;
-this.generateHtml = htmlReport;
-this.failOnVuln = failOnVulnerabilities;
-this.enableDelta = enableDelta;
-this.authManager = authManager;
-this.generateCsv = csvReport;
-}
-
-
-    /**
-     * Basic constructor using only policy.
-     */
-    public ZapScanner(String scanPolicyName, boolean csvReport) {
-        this.scanPolicyName = scanPolicyName;
-		this.generateCsv = csvReport;
+    public ZapScanner(String contextName, String policyName, boolean generateHtml, boolean failOnVuln, boolean enableDelta, ZapAuthManager authManager, boolean generateCsv) {
+        this.contextName = contextName;
+        this.scanPolicyName = policyName != null ? policyName : "Default Policy";
+        this.generateHtml = generateHtml;
+        this.failOnVuln = failOnVuln;
+        this.enableDelta = enableDelta;
+        this.authManager = authManager;
+        this.generateCsv = generateCsv;
     }
-    
     private String fetchZapVersion() {
         try {
             String json = sendSimpleGetRequest(BASE_URL + "/JSON/core/view/version/" + getApiParamPrefix());
@@ -79,27 +69,17 @@ this.generateCsv = csvReport;
         }
     }
 
-
-    /**
-     * Executes a full or quick ZAP scan and returns the number of alerts.
-     */
     public int scan(String targetUrl, boolean quickScan, int spiderTimeoutOverride, int ascanTimeoutOverride) throws IOException, InterruptedException {
-
         verifyZapApiAvailable();
 
         if (authManager != null) {
-            System.out.println("[i] Applying authentication configuration...");
+            LOGGER.info("[i] Applying authentication configuration...");
             authManager.configureAuthentication(contextName, targetUrl);
         }
 
         long siteRtt = measureSiteResponseTime(targetUrl);
-        int spiderTimeout = spiderTimeoutOverride > 0
-        	    ? spiderTimeoutOverride
-        	    : calculateDynamicTimeout(siteRtt, 150);
-        int ascanTimeout = ascanTimeoutOverride > 0
-        	    ? ascanTimeoutOverride
-        	    : calculateDynamicTimeout(siteRtt, 1800);
-
+        int spiderTimeout = spiderTimeoutOverride > 0 ? spiderTimeoutOverride : calculateDynamicTimeout(siteRtt, 150);
+        int ascanTimeout = ascanTimeoutOverride > 0 ? ascanTimeoutOverride : calculateDynamicTimeout(siteRtt, 1800);
 
         runZapScan(targetUrl, quickScan, spiderTimeout, ascanTimeout);
 
@@ -116,51 +96,37 @@ this.generateCsv = csvReport;
             try {
                 HtmlReportGenerator reportGen = new HtmlReportGenerator();
                 LocalDateTime scanStart = LocalDateTime.now();
-
-                // ZAP scan logic here...
-
-                // Save JSON before generating report
                 saveJsonReport(alerts);
-                System.out.println("[✓] JSON report saved. Alert count: " + alerts.path("alerts").size());
-
-
                 LocalDateTime scanEnd = LocalDateTime.now();
                 String zapVersion = fetchZapVersion();
-                String toolVersion = "1.0"; // Update if version info is available elsewhere
-
-                reportGen.generateDetailedReportFromJson(
-                    targetUrl,
-                    JSON_REPORT_PATH,
-                    scanStart,
-                    scanEnd,
-                    zapVersion,
-                    toolVersion
-                );
-                System.out.println("[✓] HTML Report generated at: reports/detailed-report.html");
-
-                if (enableDelta) {
-                    generateDeltaComparison();
-                }
-
+                String toolVersion = "1.0";
+                reportGen.generateDetailedReportFromJson(targetUrl, JSON_REPORT_PATH, scanStart, scanEnd, zapVersion, toolVersion);
+                LOGGER.info("[✓] HTML Report generated at: reports/detailed-report.html");
+                if (enableDelta) generateDeltaComparison();
             } catch (Exception e) {
-                System.err.println("[!] Failed to generate HTML report: " + e.getMessage());
+                LOGGER.log(Level.SEVERE, "[!] Failed to generate HTML report", e);
+            }
+        }
+
+        if (generateCsv) {
+            try {
+                CsvReportWriter.writeCsv(JSON_REPORT_PATH, OUTPUT_DIR + "/zap_result.csv");
+                LOGGER.info("[✓] CSV Report generated at: reports/zap_result.csv");
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "[!] Failed to generate CSV report", e);
             }
         }
 
         int highSeverity = 0;
         for (JsonNode alert : alerts.path("alerts")) {
             String risk = alert.path("risk").asText("").toLowerCase();
-            if ("high".equals(risk)) {
-                highSeverity++;
-            }
+            if ("high".equals(risk)) highSeverity++;
         }
 
         if (failOnVuln && highSeverity > 0) {
-            System.err.printf("[!] CI Mode: %d high severity issues found. Failing the build.%n", highSeverity);
+            LOGGER.severe(String.format("[!] CI Mode: %d high severity issues found. Failing the build.", highSeverity));
             System.exit(1);
         }
-        System.out.println("Report file exists? " + Files.exists(Paths.get("reports/zap_result.json")));
-        System.out.println("Report file size: " + Files.size(Paths.get("reports/zap_result.json")) + " bytes");
 
         return alerts.path("alerts").size();
     }

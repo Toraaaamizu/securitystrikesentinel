@@ -29,7 +29,8 @@ public class ZapScannerTest {
             true,                // generate HTML report
             false,               // failOnVuln
             false,               // enable delta
-            null                 // authManager
+            null,                // authManager
+            false                // generateCsv (new parameter)
         );
 
         int findings = scanner.scan(TEST_TARGET, true, -1, -1); // quick scan
