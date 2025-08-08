@@ -1,178 +1,128 @@
+# Security Strike Sentinel
 
-# 🛡️ Security Strike Sentinel
+![ZAP Scan](https://github.com/Toraaaamizu/securitystrikesentinel/actions/workflows/zap-scan.yml/badge.svg)
 
-[![Build Status](https://github.com/Toraaaamizu/securitystrikesentinel/actions/workflows/zap-scan.yml/badge.svg)](https://github.com/Toraaaamizu/securitystrikesentinel/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-
-> Automated OWASP ZAP-powered security scanner with rich reporting, authentication support, CI integration, and delta tracking.
+Security Strike Sentinel is an advanced security testing automation toolkit built around the OWASP ZAP Proxy. It performs automated scans, generates rich HTML/CSV reports, and supports delta analysis, CI/CD integration, and authentication-based testing.
 
 ---
 
-## ✨ Features
+## 🚀 Features
 
-- ✅ **Automated Security Scanning** (powered by OWASP ZAP)
-- 🔐 **Authentication Support** (form/manual/http with login context)
-- 📊 **HTML + CSV Reports** with severity breakdowns and charts
-- 🧪 **CI/CD Integration** with exit status for vulnerabilities
-- 🧠 **Delta Reporting** (compare with previous scan)
-- 🛠️ **Custom Scan Policy** & configurable timeouts
-- 🖥️ **Simple CLI Interface**
-
----
-
-## 📦 Requirements
-
-- Java 11 or higher
-- OWASP ZAP installed and running on `localhost:8080`
-- API key enabled in ZAP (configure it in `ZapScanner.java` or `~/.ZAP/config.xml`)
+- ✅ CLI-powered ZAP vulnerability scanning
+- 📊 HTML & CSV reporting with charts, risk summaries, and duration
+- 🔐 Authenticated scanning (form/manual/http login)
+- 🔁 Delta reporting support (compare with previous run)
+- ⏱️ Dynamic timeout estimation based on target RTT
+- 🛠️ Scan policy selection and context support
+- 🧪 JUnit-ready tests (optional)
+- ⚙️ GitHub Actions and CI/CD friendly
 
 ---
 
-## 🚀 Getting Started
+## 📦 Installation
 
-### 1. Clone & Build
-```bash
+```
 git clone https://github.com/Toraaaamizu/securitystrikesentinel.git
-cd security-strike-sentinel
-mvn clean install
-```
-
-### 2. Start ZAP in daemon/API mode
-```bash
-zap.sh -daemon -port 8080 -config api.key=1utjr8dcvt4521ujk7d62md5l9
-```
-
-### 3. Run a Basic Scan
-```bash
-java -jar target/security-strike-sentinel.jar --zapscan http://testphp.vulnweb.com --html-report
+cd securitystrikesentinel
+./gradlew fatJar
 ```
 
 ---
 
-## 🛠️ CLI Usage
+## 🧪 Usage
 
-### 🔍 Basic Scan
+Run a ZAP scan against a target:
+
 ```bash
---zapscan <URL>          Run a ZAP scan on the given URL
---quick                  Passive-only scan (faster, non-invasive)
---policy <name>          Use custom ZAP scan policy
+java -jar build/libs/security-strike-sentinel-all.jar \
+  --zapscan http://testphp.vulnweb.com \
+  --context my-context \
+  --policy "Default Policy" \
+  --ci-mode \
+  --delta \
+  --html-report
 ```
 
-### 🧾 Report Options
+### 🧩 Authenticated Scanning
+
 ```bash
---html-report            Generate detailed HTML report (with charts)
---csv-report             Generate CSV version of scan results
---delta                  Enable delta reporting (compare previous scan)
+--auth-username admin \
+--auth-password password123 \
+--auth-method form \
+--auth-login-url http://testsite/login \
+--auth-username-field username \
+--auth-password-field password \
+--auth-logged-in-indicator "Logout"
 ```
 
-### 🧪 CI Mode
+### 📄 CLI Flags
+
 ```bash
---ci                     Fail with non-zero exit code on High vulnerabilities
-```
-
-### 🔐 Authentication Options
-```bash
---auth-method <type>             (form, manual, http)
---auth-username <user>
---auth-password <pass>
---auth-login-url <url>
---auth-username-field <field>
---auth-password-field <field>
---auth-logged-in-indicator <regex>
---auth-logout-indicator <regex>
---auth-exclude <regex>
-```
-
-### 🕐 Timeout Options
-```bash
---spider-timeout <seconds>       Override spider scan timeout
---ascan-timeout <seconds>        Override active scan timeout
-```
-
----
-
-## 🧪 Example CLI Commands
-
-### 🔹 Quick Authenticated Scan
-```bash
-java -jar target/security-strike-sentinel.jar   --zapscan http://zero.webappsecurity.com   --quick --html-report --csv-report   --auth-method form   --auth-username user --auth-password pass   --auth-login-url http://zero.webappsecurity.com/login.html   --auth-username-field user_login   --auth-password-field user_password   --auth-logged-in-indicator "Logout"
-```
-
-### 🔸 Full CI Scan with Delta
-```bash
-java -jar target/security-strike-sentinel.jar   --zapscan http://testphp.vulnweb.com   --ci --html-report --delta
+--zapscan              Run ZAP scan on target
+--quick                Use quick mode (passive only)
+--html-report          Generate HTML report
+--csv-report           Generate CSV report
+--context              Context name to use
+--policy               Scan policy name to use
+--ci-mode              Fail build if high risk found
+--delta                Enable delta report
+--auth-*               Authentication settings
+--spider-timeout       Spider timeout override
+--ascan-timeout        Active scan timeout override
 ```
 
 ---
 
-## 📊 Sample Report
-
-### 📈 HTML Report (with charts)
+## 🖼️ Sample Reports
 
 [Report Overview](docs/screenshots/overview.png)
+---
 
-### 📉 CSV Output
+## 🛠️ Development & Build
 
+Requires:
+- Java 11+
+- Gradle 7+
+- OWASP ZAP (running as proxy with API key)
+
+### Build
+```bash
+./gradlew fatJar
 ```
-Risk,Name,URL
-High,Cookie No HttpOnly Flag,http://testphp.vulnweb.com/
-Medium,X-Content-Type-Options Header Missing,http://testphp.vulnweb.com/
+
+### Test
+```bash
+./gradlew test
 ```
 
 ---
 
-## 🧩 Project Structure
+## 📄 License
 
 ```
-├── src/main/java
-│   ├── cli/                 ← CLI Parser
-│   ├── scanners/zap/        ← ZapScanner Logic
-│   ├── auth/                ← Authentication Context Manager
-│   └── reports/             ← HTML & CSV Generators
-├── reports/                 ← Generated Reports (.json, .html, .csv)
-└── README.md
+Apache License
+Version 2.0, January 2004
+http://www.apache.org/licenses/
 ```
+
+See [LICENSE](LICENSE) for full text.
 
 ---
 
-## 🔄 CI/CD Integration
+## 🤝 Contributions
 
-### ✅ GitHub Actions
-Include this in `.github/workflows/ci.yml`:
-```yaml
-- name: Run Security Strike Sentinel
-  run: java -jar target/security-strike-sentinel.jar --zapscan http://yourapp.com --ci --html-report
-```
-
-### 🧪 GitLab CI
-```yaml
-security_scan:
-  script:
-    - java -jar target/security-strike-sentinel.jar --zapscan http://yourapp.com --ci --html-report
-```
+PRs and issues are welcome! Star ⭐ the project to support.
 
 ---
 
-## ✅ License
+## 👥 Authors
 
-[MIT](LICENSE)
-
----
-
-## 🙋 FAQ
-
-**Q:** Does this require the ZAP desktop GUI?  
-**A:** No, run ZAP in headless/daemon mode (`-daemon`) and use the API.
-
-**Q:** What happens if ZAP is not running?  
-**A:** The tool will fail gracefully with a message and exit.
-
-**Q:** Can I customize the HTML report layout?  
-**A:** You can extend `HtmlReportGenerator.java` or customize the embedded Chart.js logic.
+- [@Toraaaamizu](https://github.com/Toraaaamizu)
 
 ---
 
-## 🔗 References
+## 📌 Notes
 
-- [OWASP ZAP API Docs](https://www.zaproxy.org/docs/api/)
-- [OWASP ZAP Project](https://www.zaproxy.org/)
+- Ensure ZAP is running locally (`http://localhost:8080`) with API key enabled.
+- HTML & CSV reports are stored in `reports/`
+- Delta comparison requires previous report snapshot.
