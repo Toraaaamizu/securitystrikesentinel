@@ -1,9 +1,9 @@
 
 # 🛡️ Security Strike Sentinel
 
-![Build](https://img.shields.io/github/actions/workflow/status/YOUR_ORG/security-strike-sentinel/ci.yml?branch=main)
+![Build](https://github.com/Toraaaamizu/securitystrikesentinel/actions/workflows/zap-scan.yml/badge.svg)
 ![Java](https://img.shields.io/badge/java-11%2B-blue)
-![License](https://img.shields.io/github/license/YOUR_ORG/security-strike-sentinel)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 > Automated OWASP ZAP-powered security scanner with rich reporting, authentication support, CI integration, and delta tracking.
 
