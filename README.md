@@ -33,7 +33,7 @@
 
 ### 1. Clone & Build
 ```bash
-git clone https://github.com/YOUR_ORG/security-strike-sentinel.git
+git clone https://github.com/Toraaaamizu/securitystrikesentinel.git
 cd security-strike-sentinel
 mvn clean install
 ```
