@@ -1,7 +1,7 @@
 
 # 🛡️ Security Strike Sentinel
 
-![Build](https://github.com/Toraaaamizu/securitystrikesentinel/actions/workflows/zap-scan.yml/badge.svg)
+[![Build]([https://github.com/Toraaaamizu/securitystrikesentinel/actions/workflows/main.yml/badge.svg)](https://github.com/Toraaaamizu/securitystrikesentinelactions)
 ![Java](https://img.shields.io/badge/java-11%2B-blue)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
