@@ -1,0 +1,26 @@
+name: ZAP Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  zap-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build Project
+        run: mvn clean install -DskipTests
+
+      - name: Run ZAP Scanner (CLI Mode)
+        run: java -jar target/security-strike-sentinel-1.0-SNAPSHOT.jar --zapscan http://testphp.vulnweb.com --quick --html-report
